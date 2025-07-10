@@ -1,0 +1,787 @@
+/* src/app/routes/client/client.component.scss */
+
+/* RTL Support */
+.mortgage-app-container {
+  direction: rtl;
+  text-align: right;
+  font-family: 'Rubik', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f8fafc;
+  overflow-x: hidden; /* Prevent horizontal overflow */
+}
+
+/* Header Styles */
+.app-header {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: white;
+  padding: 1rem 2rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  .logo-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+
+    .logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+    }
+
+    .app-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 0;
+    }
+  }
+}
+
+/* Content Wrapper */
+.content-wrapper {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Main Content */
+.main-content {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+/* Client Dashboard */
+.client-dashboard {
+  max-width: 1200px;
+  margin: 0 auto;
+
+  h2 {
+    color: #1f2937;
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 2rem;
+    text-align: center;
+  }
+}
+
+/* New Request Section */
+.new-request-section {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+  text-align: center;
+
+  h3 {
+    color: #1f2937;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 2rem;
+  }
+
+  .request-types {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+
+    .request-type-btn {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      color: white;
+      border: none;
+      padding: 1rem 2rem;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
+    }
+  }
+}
+
+/* Web Form Container - FIXED FOR MOBILE */
+.web-form-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-start; /* Changed from center to flex-start */
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem; /* Added padding */
+  overflow-y: auto; /* Allow scrolling */
+
+  .web-form-header {
+    text-align: center;
+    margin-bottom: 2rem;
+
+    h2 {
+      color: #1f2937;
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .form-subtitle {
+      color: #6b7280;
+      font-size: 1rem;
+    }
+  }
+}
+
+/* Mortgage Web Form - FIXED FOR MOBILE */
+.mortgage-web-form {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem; /* Reduced padding for mobile */
+  max-width: 1200px; /* Doubled from 600px */
+  width: 100%; /* Changed from 90% to 100% */
+  max-height: none; /* Removed max-height constraint */
+  overflow-y: visible; /* Changed from auto to visible */
+  margin-top: 1rem; /* Added margin-top */
+  margin-bottom: 1rem; /* Added margin-bottom */
+  box-sizing: border-box; /* Ensure padding is included in width */
+
+  .form-progress {
+    margin-bottom: 2rem;
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #e5e7eb;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 0.5rem;
+
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #4f46e5, #7c3aed);
+        transition: width 0.3s ease;
+      }
+    }
+
+    .progress-text {
+      text-align: center;
+      color: #6b7280;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+  }
+
+  .form-section {
+    margin-bottom: 2rem;
+
+    h3 {
+      color: #1f2937;
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+
+      label {
+        display: block;
+        color: #374151;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+      }
+
+      input, select {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 1rem;
+        box-sizing: border-box; /* Ensure padding is included in width */
+
+        &:focus {
+          outline: none;
+          border-color: #4f46e5;
+          box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+      }
+
+      /* Currency input styling */
+      .currency-input-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+
+        .currency-input {
+          width: 100%;
+          padding: 0.75rem 2.5rem 0.75rem 0.75rem;
+          border: 2px solid #e2e8f0;
+          border-radius: 8px;
+          font-size: 1rem;
+          font-family: 'Roboto Mono', monospace;
+          font-weight: 500;
+          text-align: right;
+          direction: ltr; /* Keep numbers left-to-right */
+          background-color: #f8fafc;
+          box-sizing: border-box;
+          transition: all 0.2s ease;
+
+          &:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+            background-color: white;
+          }
+
+          &:hover:not(:focus) {
+            border-color: #cbd5e1;
+            background-color: #f1f5f9;
+          }
+
+          &::placeholder {
+            color: #9ca3af;
+            direction: ltr;
+            font-weight: 400;
+          }
+
+          /* Valid state */
+          &.ng-valid.ng-touched {
+            border-color: #10b981;
+            background-color: #f0fdf4;
+          }
+
+          /* Invalid state */
+          &.ng-invalid.ng-touched {
+            border-color: #ef4444;
+            background-color: #fef2f2;
+          }
+        }
+
+        .currency-symbol {
+          position: absolute;
+          left: 0.75rem;
+          color: #6b7280;
+          font-weight: 600;
+          font-size: 1rem;
+          pointer-events: none;
+          z-index: 1;
+          background: white;
+          padding: 0 0.25rem;
+          border-radius: 4px;
+        }
+
+        /* Styling for when input is focused */
+        &:focus-within .currency-symbol {
+          color: #4f46e5;
+        }
+
+        /* Valid state for symbol */
+        &:has(.ng-valid.ng-touched) .currency-symbol {
+          color: #10b981;
+        }
+
+        /* Invalid state for symbol */
+        &:has(.ng-invalid.ng-touched) .currency-symbol {
+          color: #ef4444;
+        }
+      }
+
+      /* RTL for regular inputs */
+      input:not(.currency-input), select {
+        direction: rtl;
+        text-align: right;
+      }
+
+      .error-message {
+        color: #ef4444;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+      }
+    }
+  }
+
+  .upload-info {
+    color: #6b7280;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+
+  .document-upload-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    .document-upload-item {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 1rem;
+
+      label {
+        display: block;
+        color: #374151;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+      }
+
+      input[type="file"] {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px dashed #d1d5db;
+        border-radius: 6px;
+        cursor: pointer;
+        box-sizing: border-box;
+      }
+    }
+  }
+
+  .appointment-info {
+    color: #6b7280;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+
+  .appointment-slots {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+
+    .appointment-slot {
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        border-color: #4f46e5;
+        background: rgba(79, 70, 229, 0.05);
+      }
+
+      &.selected {
+        border-color: #4f46e5;
+        background: rgba(79, 70, 229, 0.1);
+      }
+
+      .slot-date {
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 0.25rem;
+      }
+
+      .slot-time {
+        color: #6b7280;
+        font-size: 0.875rem;
+      }
+    }
+  }
+
+  .form-navigation {
+    display: flex !important;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 2rem;
+
+    .prev-btn, .next-btn, .submit-btn {
+      padding: 0.75rem 2rem;
+      border-radius: 6px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex: 1; /* Make buttons equal width on mobile */
+      min-width: 0; /* Allow buttons to shrink */
+      font-size: 1rem;
+
+      /* Ensure buttons are visible - FORCE VISIBILITY */
+      opacity: 1 !important;
+      visibility: visible !important;
+      display: inline-flex !important;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .prev-btn {
+      background: #f3f4f6 !important;
+      color: #374151 !important;
+      border: 1px solid #d1d5db !important;
+
+      &:hover {
+        background: #e5e7eb !important;
+      }
+    }
+
+    .next-btn, .submit-btn {
+      background: #4f46e5 !important;
+      color: white !important;
+      border: none !important;
+
+      &:hover {
+        background: #4338ca !important;
+      }
+
+      &:disabled {
+        background: #9ca3af !important;
+        cursor: not-allowed;
+      }
+    }
+
+    /* Force buttons to be visible - OVERRIDE ANY HIDING */
+    button {
+      opacity: 1 !important;
+      visibility: visible !important;
+      display: inline-flex !important;
+      min-height: 44px !important;
+    }
+
+    /* Specific overrides for next button */
+    .next-btn {
+      display: inline-flex !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      background: #4f46e5 !important;
+      color: white !important;
+    }
+  }
+}
+
+/* Success Message */
+.success-message {
+  background: white;
+  border-radius: 12px;
+  padding: 3rem;
+  text-align: center;
+  max-width: 500px;
+  width: 100%; /* Changed from 90% to 100% */
+  margin-top: 1rem; /* Added margin-top */
+  margin-bottom: 1rem; /* Added margin-bottom */
+  box-sizing: border-box; /* Ensure padding is included in width */
+
+  .success-icon {
+    width: 80px;
+    height: 80px;
+    background: #dcfce7;
+    color: #15803d;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: bold;
+    margin: 0 auto 1.5rem;
+  }
+
+  h3 {
+    color: #1f2937;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+  }
+
+  p {
+    color: #6b7280;
+    margin-bottom: 1rem;
+
+    strong {
+      color: #1f2937;
+      font-weight: 600;
+    }
+  }
+
+  .close-btn {
+    background: #4f46e5;
+    color: white;
+    border: none;
+    padding: 0.75rem 2rem;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 1rem;
+
+    &:hover {
+      background: #4338ca;
+    }
+  }
+}
+
+/* Footer */
+.app-footer {
+  background: #1f2937;
+  color: #d1d5db;
+  padding: 1rem 2rem;
+  text-align: center;
+  margin-top: auto;
+
+  .footer-content {
+    p {
+      margin: 0;
+      font-size: 0.875rem;
+    }
+  }
+}
+
+/* Responsive Design - IMPROVED */
+@media (max-width: 768px) {
+  .content-wrapper {
+    flex-direction: column;
+  }
+
+  .main-content {
+    order: 1;
+    padding: 1rem;
+  }
+
+  .app-header {
+    display: flex;
+    padding: 1rem;
+
+    .logo-container {
+      .app-title {
+        font-size: 1.25rem;
+      }
+    }
+  }
+
+  .new-request-section {
+    .request-types {
+      flex-direction: column;
+      align-items: center;
+
+      .request-type-btn {
+        width: 100%;
+        max-width: 300px;
+      }
+    }
+  }
+
+  .appointment-slots {
+    grid-template-columns: 1fr;
+  }
+
+  /* WEB FORM MOBILE FIXES */
+  .web-form-container {
+    padding: 0.5rem; /* Reduced padding */
+    align-items: flex-start; /* Start from top */
+  }
+
+  .mortgage-web-form {
+    padding: 1rem; /* Reduced padding */
+    width: 100%; /* Full width */
+    max-width: 95vw; /* Ensure it fits on mobile */
+    margin-top: 0.5rem; /* Reduced margin */
+    margin-bottom: 0.5rem; /* Reduced margin */
+
+    .form-navigation {
+      flex-direction: column;
+      gap: 0.5rem;
+
+      .prev-btn, .next-btn, .submit-btn {
+        width: 100%;
+        flex: none; /* Reset flex */
+        padding: 1rem 2rem; /* Larger padding for mobile */
+        font-size: 1.1rem; /* Larger font for mobile */
+        min-height: 50px; /* Minimum touch target */
+
+        /* Force visibility */
+        display: block !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+      }
+    }
+
+    /* Currency inputs on mobile */
+    .currency-input-wrapper {
+      .currency-input {
+        font-size: 16px; /* Prevent zoom on iOS */
+        padding: 1rem 3rem 1rem 1rem; /* More padding on mobile */
+      }
+
+      .currency-symbol {
+        left: 1rem;
+        font-size: 1.1rem;
+      }
+    }
+  }
+
+  .success-message {
+    padding: 2rem 1rem; /* Reduced horizontal padding */
+    width: 100%; /* Full width */
+    margin-top: 0.5rem; /* Reduced margin */
+    margin-bottom: 0.5rem; /* Reduced margin */
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+
+    .logo-container {
+      justify-content: center;
+
+      .app-title {
+        font-size: 1.125rem;
+      }
+    }
+  }
+
+  /* EXTRA SMALL MOBILE FIXES */
+  .web-form-container {
+    padding: 0.25rem; /* Even smaller padding */
+  }
+
+  .mortgage-web-form {
+    padding: 0.75rem; /* Even smaller padding */
+    border-radius: 8px; /* Smaller border radius */
+    max-width: 98vw; /* Use almost full screen */
+
+    .form-section {
+      margin-bottom: 1.5rem; /* Reduced margin */
+
+      h3 {
+        font-size: 1.125rem; /* Smaller heading */
+        margin-bottom: 1rem; /* Reduced margin */
+      }
+    }
+
+    .form-progress {
+      margin-bottom: 1.5rem; /* Reduced margin */
+    }
+
+    /* Currency inputs on very small screens */
+    .currency-input-wrapper {
+      .currency-input {
+        font-size: 16px; /* Consistent font size */
+        padding: 0.875rem 3rem 0.875rem 0.875rem; /* Adjusted padding */
+      }
+
+      .currency-symbol {
+        left: 0.875rem;
+        font-size: 1rem;
+      }
+    }
+  }
+
+  .success-message {
+    padding: 1.5rem 0.75rem; /* Even smaller padding */
+    border-radius: 8px; /* Smaller border radius */
+    max-width: 98vw;
+
+    .success-icon {
+      width: 60px; /* Smaller icon */
+      height: 60px; /* Smaller icon */
+      font-size: 1.5rem; /* Smaller icon font */
+    }
+
+    h3 {
+      font-size: 1.25rem; /* Smaller heading */
+    }
+  }
+}
+
+/* Loading States */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: #6b7280;
+
+  &::before {
+    content: '';
+    width: 20px;
+    height: 20px;
+    border: 2px solid #e5e7eb;
+    border-top: 2px solid #4f46e5;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-left: 0.5rem;
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Animations */
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+
+  &:hover {
+    background: #94a3b8;
+  }
+}
+
+/* Focus Styles */
+button:focus,
+input:focus,
+select:focus {
+  outline: 2px solid #4f46e5;
+  outline-offset: 2px;
+}
+
+/* Print Styles */
+@media print {
+  .app-header,
+  .app-footer,
+  .form-navigation {
+    display: none;
+  }
+
+  .web-form-container {
+    position: static;
+    background: white;
+  }
+
+  .mortgage-web-form {
+    box-shadow: none;
+    max-height: none;
+    overflow: visible;
+  }
+}

@@ -1,0 +1,170 @@
+<div *ngIf="request" class="request-details-page">
+    <main class="container">
+        <div class="header-section">
+            <button class="back-button" (click)="goBack()">
+                <i class="fas fa-arrow-right"></i>
+                חזרה
+            </button>
+            <h2>פרטי בקשה #{{ request.requestNumber }}</h2>
+        </div>
+
+        <div *ngIf="loading" class="loading-state">
+            <span>טוען פרטי בקשה...</span>
+            <div class="spinner"></div>
+        </div>
+
+        <div *ngIf="!loading && !request" class="empty-state">
+            <i class="fas fa-exclamation-circle"></i>
+            <h3>הבקשה לא נמצאה</h3>
+            <p>לא ניתן למצוא בקשה עם המזהה שסופק.</p>
+        </div>
+
+        <div *ngIf="!loading && request" class="details-grid">
+            <div class="card overview-card">
+                <h3>סקירת בקשה</h3>
+                <p><strong>לקוח:</strong> {{ customer?.name || 'לא ידוע' }} ({{ customer?.mobile || 'לא ידוע' }})</p>
+                <p><strong>סוג בקשה:</strong> {{ request.requestType.caption || 'N/A' }}</p>
+                <p><strong>סטטוס:</strong>
+                    <span class="status-badge" [ngClass]="getStatusColorClass(request.status)">
+                        {{ request.status.caption || 'N/A' }}
+                    </span>
+                </p>
+                <p *ngIf="request.assignedOperator"><strong>מפעיל משויך:</strong> {{ request.assignedOperator.name ||
+                    'טרם שויך' }}</p>
+                <p><strong>נוצר בתאריך:</strong> {{ request.createdAt | date:'dd/MM/yyyy HH:mm' }}</p>
+                <p><strong>עודכן בתאריך:</strong> {{ request.updatedAt | date:'dd/MM/yyyy HH:mm' }}</p>
+
+                <div class="action-buttons-group"
+                    *ngIf="(isAllowed(Roles.operator) || isAllowed(Roles.manager) || isAllowed(Roles.admin)) && request.status.id !== RequestStatus.COMPLETED.id">
+                    <button class="btn btn-primary" (click)="updateRequestStatus()">
+                        <i class="fas fa-edit"></i> עדכון סטטוס
+                    </button>
+                    <button class="btn btn-secondary" (click)="assignRequest()"
+                        *ngIf="isAllowed(Roles.manager) || isAllowed(Roles.admin)">
+                        <i class="fas fa-user-tag"></i> שיוך / העברה למתפעלת
+                    </button>
+                    <button class="btn btn-secondary" (click)="startProcessing()"
+                        *ngIf="(isAllowed(Roles.operator) || isAllowed(Roles.admin)) && request.status.id === RequestStatus.ASSIGNED.id">
+                        <i class="fas fa-user-tag"></i> התחלת טיפול
+                    </button>
+                </div>
+            </div>
+
+            <div class="card stages-card">
+                <h3>התקדמות ושלבי בקשה</h3>
+                <div *ngIf="loadingStages" class="loading-inline">טוען שלבים...</div>
+                <div *ngIf="!loadingStages && stages.length === 0" class="empty-state-small">
+                    <i class="fas fa-clipboard-list"></i>
+                    <p>אין שלבים מוגדרים עבור סוג בקשה זה.</p>
+                </div>
+                <div class="stage-flow" *ngIf="!loadingStages && stages.length > 0">
+                    <div class="stage-item" *ngFor="let currentStageItem of stages; let i = index"
+                        [id]="'stage-item-' + currentStageItem.id"
+                        [class.completed]="request.currentStageDetails && request.currentStageDetails.stage.id === currentStageItem.id && request.currentStageDetails.done"
+                        [class.active]="request.currentStageDetails && request.currentStageDetails.stage.id === currentStageItem.id && !request.currentStageDetails.done">
+                        <div class="stage-icon">
+                            <i class="fas" [ngClass]="{
+                'fa-check-circle': request.currentStageDetails?.stage?.id === currentStageItem.id && request.currentStageDetails?.done,
+                'fa-circle': !(request.currentStageDetails?.stage?.id === currentStageItem.id && request.currentStageDetails?.done),
+                'fa-arrow-alt-circle-right': request.currentStageDetails?.stage?.id === currentStageItem.id && !request.currentStageDetails?.done
+            }"></i>
+                        </div>
+                        <div class="stage-content">
+                            <h4>{{ currentStageItem.desc }}</h4>
+                            <p *ngIf="currentStageItem.days">משך: {{ currentStageItem.days }} ימים</p>
+                            <p
+                                *ngIf="request.currentStageDetails?.stage?.seq && (currentStageItem.seq < (request.currentStageDetails?.stage?.seq??0) ) && request.currentStageDetails?.done && currentStageItem.id !== request.currentStageDetails?.stage?.id">
+                                בפועל: הושלם
+                            </p>
+                            <ng-container *ngIf="request.currentStageDetails?.stage?.id === currentStageItem.id">
+                                <p *ngIf="request.currentStageDetails?.started">התחלה: {{
+                                    request.currentStageDetails?.started | date:'dd/MM/yyyy' }}</p>
+                                <p *ngIf="request.currentStageDetails?.untill">יעד: {{
+                                    request.currentStageDetails?.untill | date:'dd/MM/yyyy' }}</p>
+                                <p *ngIf="request.currentStageDetails?.done">הושלם: {{ request.currentStageDetails?.done
+                                    | date:'dd/MM/yyyy' }}</p>
+                                <p *ngIf="request.currentStageDetails?.notes">הערות: {{
+                                    request.currentStageDetails?.notes }}</p>
+                            </ng-container>
+                        </div>
+                    </div>
+                </div>
+                <div class="action-buttons-group"
+                    *ngIf="isAllowed(Roles.operator) || isAllowed(Roles.manager) || isAllowed(Roles.admin)">
+                    <button class="btn btn-secondary" (click)="promptUpdateStageProgress()"
+                        *ngIf="request?.currentStageDetails && request.status.id === RequestStatus.PROCESSING.id">
+                        <i class="fas fa-fast-forward"></i> עדכן התקדמות שלב
+                    </button>
+                </div>
+            </div>
+
+            <div class="card documents-card">
+                <h3>מסמכים מצורפים</h3>
+                <div *ngIf="loadingDocuments" class="loading-inline">טוען מסמכים...</div>
+                <div *ngIf="!loadingDocuments && documents.length === 0" class="empty-state-small">
+                    <i class="fas fa-folder-open"></i>
+                    <p>אין מסמכים מצורפים לבקשה זו.</p>
+                </div>
+                <ul class="document-list">
+                    <li *ngFor="let doc of documents" class="document-item">
+                        <i class="fas fa-file-pdf" *ngIf="doc.mimeType === 'application/pdf'"></i>
+                        <i class="fas fa-file-image" *ngIf="doc.mimeType?.startsWith('image/')"></i>
+                        <i class="fas fa-file-alt"
+                            *ngIf="!doc.mimeType?.startsWith('image/') && doc.mimeType !== 'application/pdf'"></i>
+                        <span>{{ doc.fileName }}</span>
+                        <button class="btn btn-sm btn-info" (click)="downloadDocument(doc)">
+                            <i class="fas fa-download"></i> הורד
+                        </button>
+                        <span *ngIf="doc.verified" class="verified-badge"><i class="fas fa-check-circle"></i>
+                            מאומת</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="card appointments-card">
+                <h3>פגישות מתוכננות</h3>
+                <div *ngIf="loadingAppointments" class="loading-inline">טוען פגישות...</div>
+                <div *ngIf="!loadingAppointments && upcomingAppointments.length === 0" class="empty-state-small">
+                    <i class="fas fa-calendar-times"></i>
+                    <p>אין פגישות מתוכננות לבקשה זו.</p>
+                </div>
+                <ul class="appointment-list">
+                    <li *ngFor="let appt of upcomingAppointments" class="appointment-item">
+                        <i class="fas fa-calendar-check"></i>
+                        <div>
+                            <p><strong>תאריך:</strong> {{ appt.startDate | date:'dd/MM/yyyy HH:mm' }}</p>
+                            <p *ngIf="appt.summary"><strong>סיכום:</strong> {{ appt.summary }}</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="card questionnaire-card">
+                <h3>נתוני שאלון</h3>
+                <div *ngIf="!request.questionnaireData || request.questionnaireData.answers.length === 0"
+                    class="empty-state-small">
+                    <i class="fas fa-clipboard-question"></i>
+                    <p>אין נתוני שאלון לבקשה זו.</p>
+                </div>
+                <div class="questionnaire-data-list">
+                    <div *ngFor="let answer of request.questionnaireData?.answers" class="questionnaire-item">
+                        <strong>{{ answer.questionText }}:</strong>
+                        <span>{{ answer.answerText }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card internal-notes-card"
+                *ngIf="isAllowed(Roles.operator) || isAllowed(Roles.manager) || isAllowed(Roles.admin)">
+                <h3>הערות פנימיות</h3>
+                <textarea [(ngModel)]="request.internalNotes" (blur)="saveInternalNotes()"
+                    placeholder="הוסף הערות פנימיות לתיק..."></textarea>
+            </div>
+
+            <div class="card rejection-card" *ngIf="request.status === RequestStatus.REJECTED">
+                <h3>סיבת דחייה</h3>
+                <p>{{ request.rejectionReason || 'לא צוין.' }}</p>
+            </div>
+        </div>
+    </main>
+</div>

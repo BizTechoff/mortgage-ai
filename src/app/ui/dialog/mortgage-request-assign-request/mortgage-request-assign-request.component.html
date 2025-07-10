@@ -1,0 +1,27 @@
+<div *ngIf="request" class="assign-operator-container" dir="rtl">
+    <header class="component-header">
+        <h3>שיוך מתפעלת לבקשה #{{ request.requestNumber }}</h3>
+        <p>לקוח: <strong>{{ request.customer && request.customer.name ? request.customer.name : 'לא ידוע' }}</strong></p>
+        <p *ngIf="request.assignedOperator">מתפעל/ת נוכחי/ת: <strong>{{ request.assignedOperator.name }}</strong></p>
+    </header>
+
+    <form *ngIf="form" [formGroup]="form" class="form-content">
+        <div class="form-group">
+            <label for="operator-select">בחר מתפעל/ת</label>
+            <select id="operator-select" formControlName="operator" class="form-control" [compareWith]="compareOperators">
+                <option [ngValue]="null">-- בחר מתפעל/ת --</option>
+                <option *ngFor="let op of operators" [ngValue]="op">
+                    {{ op.name }}
+                </option>
+            </select>
+            <div *ngIf="form.get('operator')?.invalid && form.get('operator')?.touched" class="error-message">
+                נא לבחור מתפעל/ת.
+            </div>
+        </div>
+    </form>
+
+    <footer *ngIf="form" class="action-buttons">
+        <button type="button" class="btn btn-secondary" (click)="cancel()">ביטול</button>
+        <button type="button" class="btn btn-primary" (click)="save()" [disabled]="form.invalid">שמירת שינויים</button>
+    </footer>
+</div>

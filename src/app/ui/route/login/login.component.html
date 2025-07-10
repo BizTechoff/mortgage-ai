@@ -1,0 +1,80 @@
+<div class="login-container" dir="rtl">
+    <div class="login-box">
+        <div class="login-header">
+            <img src="./assets/logo.png" alt="לוגו המערכת" class="logo">
+            <h2 style="display: flex; flex-direction: column; align-items: center;">
+                <span>בקשת </span>
+                <span>המשכנתה שלך</span>
+            </h2>
+        </div>
+
+        <div *ngIf="isLoading" class="loading-spinner">
+            <div class="spinner"></div>
+            <p>{{ loginStep === 'processingMagicLink' ? 'מעבד קישור התחברות...' : 'מתחבר...' }}</p>
+        </div>
+
+        <ng-container *ngIf="!isLoading && loginStep === 'initial'">
+            <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+                <!-- <div class="form-group">
+                    <label for="username">שם:</label>
+                    <input id="username" type="text" formControlName="username" class="form-control"
+                        [class.is-invalid]="f['username'].invalid && f['username'].touched">
+                    <div *ngIf="f['username'].invalid && f['username'].touched" class="invalid-feedback">
+                        <span>שם נדרש.</span>
+                    </div>
+                </div> -->
+
+                <div class="form-group">
+                    <label for="mobile">נייד:</label>
+                    <input id="mobile" type="tel" formControlName="mobile" class="form-control"
+                        [class.is-invalid]="f['mobile'].invalid && f['mobile'].touched" mask="000-0000000"
+                        placeholder="05X-XXXXXXX" (input)="onMobileInput($event)">
+                    <div *ngIf="f['mobile'].invalid && f['mobile'].touched" class="invalid-feedback">
+                        <span *ngIf="f['mobile'].errors?.['required']">נייד נדרש.</span>
+                        <span *ngIf="f['mobile'].errors?.['pattern']">פורמט מספר נייד אינו תקין.</span>
+                    </div>
+                </div>
+
+                <button type="submit" class="login-button" [disabled]="loginForm.invalid || isLoading">
+                    <span>שלח קוד אימות לווטסאפ</span>
+                </button>
+            </form>
+        </ng-container>
+
+        <ng-container *ngIf="!isLoading && loginStep === 'codeVerification'">
+            <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+                <p class="verification-message">
+                    <span>קוד אימות נשלח לווטסאפ שלך במספר</span>
+                    <span dir="ltr">**{{ maskedMobile }}**</span>
+                    <span>אנא הזן אותו</span>
+                </p>
+                <div class="form-group">
+                    <label for="verificationCode">קוד אימות:</label>
+                    <input id="verificationCode" type="text" formControlName="verificationCode" class="form-control"
+                        [class.is-invalid]="f['verificationCode'].invalid && f['verificationCode'].touched">
+                    <div *ngIf="f['verificationCode'].invalid && f['verificationCode'].touched"
+                        class="invalid-feedback">
+                        <span>קוד אימות נדרש.</span>
+                    </div>
+                </div>
+
+                <button type="submit" class="login-button" [disabled]="f['verificationCode'].invalid || isLoading">
+                    <span>התחבר</span>
+                </button>
+
+                <button type="button" class="resend-code-button" (click)="resendVerificationCode()"
+                    [disabled]="!canResendCode || isLoading">
+                    <span *ngIf="canResendCode">שלח שוב קוד אימות</span>
+                    <span *ngIf="!canResendCode">שלח שוב בעוד {{ resendCountdown }} שניות</span>
+                </button>
+            </form>
+        </ng-container>
+
+        <ng-container *ngIf="!isLoading && loginStep === 'processingMagicLink'">
+            <p class="magic-link-message">
+                מעבד קישור התחברות אוטומטי...
+            </p>
+        </ng-container>
+
+    </div>
+</div>

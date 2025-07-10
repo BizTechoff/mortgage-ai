@@ -1,0 +1,36 @@
+<div *ngIf="request" class="update-status-container" dir="rtl">
+
+    <header class="component-header">
+        <h3>עדכון סטטוס לבקשה #{{ request.requestNumber }}</h3>
+        <p>לקוח: <strong>{{ request.customer && request.customer.name ? request.customer.name : 'לא ידוע' }}</strong></p>
+    </header>
+
+    <form [formGroup]="form" class="form-content">
+
+        <div class="form-group">
+            <label for="status-select">בחר סטטוס חדש</label>
+            <select id="status-select" formControlName="status" class="form-control" [compareWith]="compareStatuses">
+                <option *ngFor="let status of requestStatuses" [ngValue]="status">
+                    {{ status.caption }}
+                </option>
+            </select>
+        </div>
+
+        <div *ngIf="form.get('status')?.value === RequestStatus.REJECTED" class="form-group">
+            <label for="rejection-reason">סיבת הדחייה</label>
+            <textarea 
+                id="rejection-reason" 
+                formControlName="rejectionReason" 
+                class="form-control"
+                rows="4" 
+                placeholder="נא לפרט מדוע הבקשה נדחתה..."></textarea>
+        </div>
+
+    </form>
+
+    <footer class="action-buttons">
+        <button type="button" class="btn btn-secondary" (click)="cancel()">ביטול</button>
+        <button type="button" class="btn btn-primary" (click)="save()" [disabled]="form.invalid">שמירת שינויים</button>
+    </footer>
+
+</div>
