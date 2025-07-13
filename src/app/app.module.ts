@@ -42,11 +42,13 @@ import { LoginComponent } from './ui/route/login/login.component'
 import { OperatorComponent } from './ui/route/operator/operator.component'
 import { UsersComponent } from './ui/route/users/users.component'
 import { RequestComponent } from './ui/route/request/request.component'
+import { CustomerListComponent } from './ui/route/customer-list/customer-list.component'
 
 @NgModule({
   declarations: [
     AppComponent,
     UsersComponent,
+    CustomerListComponent,
     HomeComponent,
     LoginComponent,
     AdminComponent,

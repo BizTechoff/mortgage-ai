@@ -159,7 +159,7 @@ export class OperatorController extends ControllerBase {
 
         request.assignedOperatorId = operatorId;
         // Optionally update status to indicate it's assigned
-        if (request.status === RequestStatus.NEW || request.status === RequestStatus.WAITING_FOR_SELECTION) {
+        if (request.status.id === RequestStatus.NEW.id || request.status.id === RequestStatus.WAITING_FOR_SELECTION.id) {
             request.status = RequestStatus.ASSIGNED; // Set status to ASSIGNED
         }
 

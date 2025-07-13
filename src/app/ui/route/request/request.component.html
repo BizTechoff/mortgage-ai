@@ -35,16 +35,16 @@
                 <p><strong>עודכן בתאריך:</strong> {{ request.updatedAt | date:'dd/MM/yyyy HH:mm' }}</p>
 
                 <div class="action-buttons-group"
-                    *ngIf="(isAllowed(Roles.operator) || isAllowed(Roles.manager) || isAllowed(Roles.admin)) && request.status.id !== RequestStatus.COMPLETED.id">
-                    <button class="btn btn-primary" (click)="updateRequestStatus()">
+                    *ngIf="request.status.id !== RequestStatus.COMPLETED.id">
+                    <button *ngIf="false" class="btn btn-primary" (click)="updateRequestStatus()">
                         <i class="fas fa-edit"></i> עדכון סטטוס
                     </button>
                     <button class="btn btn-secondary" (click)="assignRequest()"
-                        *ngIf="isAllowed(Roles.manager) || isAllowed(Roles.admin)">
+                        *ngIf="false">
                         <i class="fas fa-user-tag"></i> שיוך / העברה למתפעלת
                     </button>
-                    <button class="btn btn-secondary" (click)="startProcessing()"
-                        *ngIf="(isAllowed(Roles.operator) || isAllowed(Roles.admin)) && request.status.id === RequestStatus.ASSIGNED.id">
+                    <button class="btn btn-primary" (click)="startProcessing()"
+                        *ngIf="request.status.id === RequestStatus.ASSIGNED.id">
                         <i class="fas fa-user-tag"></i> התחלת טיפול
                     </button>
                 </div>
@@ -72,8 +72,7 @@
                         <div class="stage-content">
                             <h4>{{ currentStageItem.desc }}</h4>
                             <p *ngIf="currentStageItem.days">משך: {{ currentStageItem.days }} ימים</p>
-                            <p
-                                *ngIf="request.currentStageDetails?.stage?.seq && (currentStageItem.seq < (request.currentStageDetails?.stage?.seq??0) ) && request.currentStageDetails?.done && currentStageItem.id !== request.currentStageDetails?.stage?.id">
+                            <p *ngIf="isStageCompletedBeforeCurrent(currentStageItem)">
                                 בפועל: הושלם
                             </p>
                             <ng-container *ngIf="request.currentStageDetails?.stage?.id === currentStageItem.id">
@@ -89,10 +88,10 @@
                         </div>
                     </div>
                 </div>
+                <!-- {{request?.currentStageDetails? request?.currentStageDetails : 'NO'}} Debugging line to check current stage ID -->
                 <div class="action-buttons-group"
-                    *ngIf="isAllowed(Roles.operator) || isAllowed(Roles.manager) || isAllowed(Roles.admin)">
-                    <button class="btn btn-secondary" (click)="promptUpdateStageProgress()"
-                        *ngIf="request?.currentStageDetails && request.status.id === RequestStatus.PROCESSING.id">
+                    *ngIf="request.status.id === RequestStatus.PROCESSING.id">
+                    <button class="btn btn-secondary" (click)="promptUpdateStageProgress()">
                         <i class="fas fa-fast-forward"></i> עדכן התקדמות שלב
                     </button>
                 </div>
@@ -139,20 +138,143 @@
                 </ul>
             </div>
 
-            <div class="card questionnaire-card">
-                <h3>נתוני שאלון</h3>
+            <!-- <div class="card questionnaire-card">
+                <h3>נתוני שאלון (מערך תשובות)</h3>
                 <div *ngIf="!request.questionnaireData || request.questionnaireData.answers.length === 0"
                     class="empty-state-small">
                     <i class="fas fa-clipboard-question"></i>
-                    <p>אין נתוני שאלון לבקשה זו.</p>
+                    <p>אין נתוני שאלון (בפורמט תשובות) לבקשה זו.</p>
                 </div>
-                <div class="questionnaire-data-list">
+                <div class="questionnaire-data-list" *ngIf="request.questionnaireData?.answers.length > 0">
                     <div *ngFor="let answer of request.questionnaireData?.answers" class="questionnaire-item">
                         <strong>{{ answer.questionText }}:</strong>
                         <span>{{ answer.answerText }}</span>
                     </div>
                 </div>
+            </div> -->
+
+            <div class="card personal-details-card">
+                <h3>פרטים אישיים</h3>
+                <div *ngIf="!request.personalDetails" class="empty-state-small">
+                    <i class="fas fa-user"></i>
+                    <p>אין פרטים אישיים לבקשה זו.</p>
+                </div>
+                <div *ngIf="request.personalDetails" class="personal-data-list">
+                    <div *ngIf="request.personalDetails.fullName" class="personal-item"><strong>שם מלא:</strong> {{ request.personalDetails.fullName }}</div>
+                    <div *ngIf="request.personalDetails.mobile" class="personal-item"><strong>נייד:</strong> {{ request.personalDetails.mobile }}</div>
+                    <div *ngIf="request.personalDetails.email" class="personal-item"><strong>דוא"ל:</strong> {{ request.personalDetails.email }}</div>
+                    <div *ngIf="request.personalDetails.idNumber" class="personal-item"><strong>ת"ז:</strong> {{ request.personalDetails.idNumber }}</div>
+                    <div *ngIf="request.personalDetails.address" class="personal-item"><strong>כתובת:</strong> {{ request.personalDetails.address }}</div>
+                </div>
             </div>
+
+            <div class="card demographic-details-card">
+                <h3>מצב משפחתי ודמוגרפי</h3>
+                <div *ngIf="!request.demographicDetails" class="empty-state-small">
+                    <i class="fas fa-users"></i>
+                    <p>אין פרטים דמוגרפיים לבקשה זו.</p>
+                </div>
+                <div *ngIf="request.demographicDetails" class="demographic-data-list">
+                    <div *ngIf="request.demographicDetails.maritalStatus" class="demographic-item"><strong>מצב משפחתי:</strong> {{ request.demographicDetails.maritalStatus }}</div>
+                    <div *ngIf="request.demographicDetails.childrenDetails" class="demographic-item"><strong>ילדים וגילם:</strong> {{ request.demographicDetails.childrenDetails }}</div>
+                    <div *ngIf="request.demographicDetails.husbandAge" class="demographic-item"><strong>גיל הבעל:</strong> {{ request.demographicDetails.husbandAge }}</div>
+                    <div *ngIf="request.demographicDetails.wifeAge" class="demographic-item"><strong>גיל האישה:</strong> {{ request.demographicDetails.wifeAge }}</div>
+                </div>
+            </div>
+
+            <div class="card key-financials-card">
+                <h3>פרטים פיננסיים עיקריים</h3>
+                <div *ngIf="!request.keyFinancials" class="empty-state-small">
+                    <i class="fas fa-money-bill-alt"></i>
+                    <p>אין פרטים פיננסיים עיקריים לבקשה זו.</p>
+                </div>
+                <div *ngIf="request.keyFinancials" class="key-financials-list">
+                    <div *ngIf="request.keyFinancials.monthlyIncome" class="financial-item"><strong>הכנסה חודשית:</strong> {{ request.keyFinancials.monthlyIncome | currency:'ILS':'symbol':'1.0-0' }}</div>
+                    <div *ngIf="request.keyFinancials.partnerIncome" class="financial-item"><strong>הכנסת בן/בת זוג:</strong> {{ request.keyFinancials.partnerIncome | currency:'ILS':'symbol':'1.0-0' }}</div>
+                    <div *ngIf="request.keyFinancials.currentBank" class="financial-item"><strong>בנק נוכחי:</strong> {{ request.keyFinancials.currentBank }}</div>
+                </div>
+            </div>
+
+            <div class="card employment-financials-card">
+                <h3>תעסוקה ופיננסים משלימים</h3>
+                <div *ngIf="!request.employmentAndOtherFinancials" class="empty-state-small">
+                    <i class="fas fa-briefcase"></i>
+                    <p>אין פרטים תעסוקתיים/פיננסיים משלימים לבקשה זו.</p>
+                </div>
+                <div *ngIf="request.employmentAndOtherFinancials" class="employment-financials-list">
+                    <div *ngIf="request.employmentAndOtherFinancials.employmentType" class="financial-item"><strong>עיסוק הבעל:</strong> {{ request.employmentAndOtherFinancials.employmentType }}</div>
+                    <div *ngIf="request.employmentAndOtherFinancials.wifeEmploymentType" class="financial-item"><strong>עיסוק האישה:</strong> {{ request.employmentAndOtherFinancials.wifeEmploymentType }}</div>
+                    <div *ngIf="request.employmentAndOtherFinancials.paymentReturns" class="financial-item"><strong>היו החזרות צ'קים:</strong> {{ request.employmentAndOtherFinancials.paymentReturns }}</div>
+                    <div *ngIf="request.employmentAndOtherFinancials.healthIssues" class="financial-item"><strong>בעיות בריאותיות:</strong> {{ request.employmentAndOtherFinancials.healthIssues }}</div>
+                    <div *ngIf="request.employmentAndOtherFinancials.hasLongTermLoans" class="financial-item"><strong>הלוואות לטווח ארוך:</strong> {{ request.employmentAndOtherFinancials.hasLongTermLoans }}</div>
+                </div>
+            </div>
+
+            <div class="card property-details-card">
+                <h3>פרטי נכס</h3>
+                <div *ngIf="!request.propertyData" class="empty-state-small">
+                    <i class="fas fa-home"></i>
+                    <p>אין פרטי נכס לבקשה זו.</p>
+                </div>
+                <div *ngIf="request.propertyData" class="property-data-list">
+                    <div *ngIf="request.propertyData.propertyCity" class="property-item"><strong>עיר הנכס:</strong> {{ request.propertyData.propertyCity }}</div>
+                    <div *ngIf="request.propertyData.propertyValue" class="property-item"><strong>שווי מוערך:</strong> {{ request.propertyData.propertyValue | currency:'ILS':'symbol':'1.0-0' }}</div>
+                    <div *ngIf="request.propertyData.numberOfRooms" class="property-item"><strong>מספר חדרים:</strong> {{ request.propertyData.numberOfRooms }}</div>
+                    <div *ngIf="request.propertyData.hasAdditionalProperty" class="property-item"><strong>דירה נוספת:</strong> {{ request.propertyData.hasAdditionalProperty }}</div>
+                </div>
+            </div>
+
+            <div class="card loan-details-card">
+                <h3>פרטי הלוואה</h3>
+                <div *ngIf="!request.loanData" class="empty-state-small">
+                    <i class="fas fa-hand-holding-usd"></i>
+                    <p>אין פרטי הלוואה לבקשה זו.</p>
+                </div>
+                <div *ngIf="request.loanData" class="loan-data-list">
+                    <div *ngIf="request.loanData.requestedAmount" class="loan-item"><strong>סכום מבוקש:</strong> {{ request.loanData.requestedAmount | currency:'ILS':'symbol':'1.0-0' }}</div>
+                    <div *ngIf="request.loanData.loanPeriod" class="loan-item"><strong>תקופת הלוואה:</strong> {{ request.loanData.loanPeriod }} שנים</div>
+                    <div *ngIf="request.loanData.equityAmount" class="loan-item"><strong>הון עצמי:</strong> {{ request.loanData.equityAmount | currency:'ILS':'symbol':'1.0-0' }}</div>
+                </div>
+            </div>
+
+            <div class="card refinance-details-card" *ngIf="request.refinanceDetails">
+                <h3>פרטי מחזור משכנתה</h3>
+                <div *ngIf="!request.refinanceDetails" class="empty-state-small">
+                    <i class="fas fa-exchange-alt"></i>
+                    <p>אין פרטי מחזור לבקשה זו.</p>
+                </div>
+                <div *ngIf="request.refinanceDetails" class="refinance-data-list">
+                    <div *ngIf="request.refinanceDetails.refinanceReason" class="refinance-item"><strong>סיבת מחזור:</strong> {{ request.refinanceDetails.refinanceReason }}</div>
+                    <div *ngIf="request.refinanceDetails.remainingMortgageBalance" class="refinance-item"><strong>יתרת משכנתא:</strong> {{ request.refinanceDetails.remainingMortgageBalance | currency:'ILS':'symbol':'1.0-0' }}</div>
+                    <div *ngIf="request.refinanceDetails.currentMonthlyMortgagePayment" class="refinance-item"><strong>תשלום חודשי למשכנתא:</strong> {{ request.refinanceDetails.currentMonthlyMortgagePayment | currency:'ILS':'symbol':'1.0-0' }}</div>
+                    <div *ngIf="request.refinanceDetails.hasOtherLoans" class="refinance-item"><strong>הלוואות נוספות:</strong> {{ request.refinanceDetails.hasOtherLoans === 'yes' ? 'כן' : 'לא' }}</div>
+                </div>
+            </div>
+
+            <div class="card other-loans-card" *ngIf="request.otherLoansDetails">
+                <h3>הלוואות נוספות (פרטניות)</h3>
+                <div *ngIf="!request.otherLoansDetails" class="empty-state-small">
+                    <i class="fas fa-hand-holding-usd"></i>
+                    <p>אין פרטי הלוואות נוספות לבקשה זו.</p>
+                </div>
+                <div *ngIf="request.otherLoansDetails" class="other-loans-data-list">
+                    <div *ngIf="request.otherLoansDetails.otherLoansAmount" class="other-loan-item"><strong>גובה הלוואות נוספות:</strong> {{ request.otherLoansDetails.otherLoansAmount | currency:'ILS':'symbol':'1.0-0' }}</div>
+                    <div *ngIf="request.otherLoansDetails.otherLoansMonthlyPayment" class="other-loan-item"><strong>תשלום חודשי על הלוואות:</strong> {{ request.otherLoansDetails.otherLoansMonthlyPayment | currency:'ILS':'symbol':'1.0-0' }}</div>
+                </div>
+            </div>
+
+            <div class="card goals-difficulties-card">
+                <h3>מטרות וקשיים</h3>
+                <div *ngIf="!request.goalsAndDifficulties" class="empty-state-small">
+                    <i class="fas fa-bullseye"></i>
+                    <p>אין פרטי מטרות וקשיים לבקשה זו.</p>
+                </div>
+                <div *ngIf="request.goalsAndDifficulties" class="goals-difficulties-list">
+                    <div *ngIf="request.goalsAndDifficulties.desiredOutcome" class="goal-item"><strong>תוצאה רצויה:</strong> {{ request.goalsAndDifficulties.desiredOutcome }}</div>
+                    <div *ngIf="request.goalsAndDifficulties.mainDifficulties" class="goal-item"><strong>קשיים עיקריים:</strong> {{ request.goalsAndDifficulties.mainDifficulties }}</div>
+                </div>
+            </div>
+
 
             <div class="card internal-notes-card"
                 *ngIf="isAllowed(Roles.operator) || isAllowed(Roles.manager) || isAllowed(Roles.admin)">
@@ -161,7 +283,7 @@
                     placeholder="הוסף הערות פנימיות לתיק..."></textarea>
             </div>
 
-            <div class="card rejection-card" *ngIf="request.status === RequestStatus.REJECTED">
+            <div class="card rejection-card" *ngIf="request.status.id === RequestStatus.REJECTED.id">
                 <h3>סיבת דחייה</h3>
                 <p>{{ request.rejectionReason || 'לא צוין.' }}</p>
             </div>

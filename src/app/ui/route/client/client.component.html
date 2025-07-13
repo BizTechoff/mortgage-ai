@@ -1,17 +1,17 @@
-<div class="mortgage-app-container" dir="rtl">
+<div *ngIf="this.isCustomer()" class="mortgage-app-container" dir="rtl">
     <header class="app-header">
         <div class="logo-container">
             <img src="./assets/logo.png" alt="לוגו של שירות המשכנתאות" class="logo">
             <h1 class="app-title">ניהול בקשות משכנתה</h1>
         </div>
     </header>
-activeRequestId: {{this.activeRequestId}}
+<!-- activeRequestId: {{this.activeRequestId}}, {{activeRequest?.id}} -->
     <div class="content-wrapper">
         <main class="main-content">
             <div class="client-dashboard" *ngIf="!showWebForm">
                 <h2>ברוך הבא למערכת ניהול המשכנתאות</h2>
 
-                <div class="new-request-section" *ngIf="!activeRequest">
+                <div class="new-request-section" *ngIf="!activeRequest || activeRequest.status.id === RequestStatus.COMPLETED.id">
                     <h3>התחל בקשה חדשה</h3>
                     <div class="request-types">
                         <button class="request-type-btn" (click)="openNewRequest(RequestType.new)">
@@ -24,7 +24,8 @@ activeRequestId: {{this.activeRequestId}}
                 </div>
 
                 <div class="active-request-section" *ngIf="activeRequest">
-                    <h3>בקשתך הפעילה:</h3>
+                    <h3 *ngIf="activeRequest.status.id !== RequestStatus.COMPLETED.id">בקשתך הפעילה:</h3>
+                    <h3 *ngIf="activeRequest.status.id === RequestStatus.COMPLETED.id">בקשתך האחרונה:</h3>
                     <div class="request-details-card">
                         <p><strong>מספר בקשה:</strong> {{ activeRequest.requestNumber }}</p>
                         <p><strong>סוג בקשה:</strong>
@@ -34,13 +35,13 @@ activeRequestId: {{this.activeRequestId}}
                             <strong>פגישה קבועה:</strong> {{ activeRequest.appointmentDetails.date | date:'dd/MM/yyyy'
                             }} בשעה {{ activeRequest.appointmentDetails.time }}
                         </p>
-                        <p><strong>שלב בקשה:</strong> {{ '' }}</p>
+                        <p *ngIf="activeRequest.currentStageDesc"><strong>שלב בקשה:</strong> {{ activeRequest.currentStageDesc }}</p>
                         <p *ngIf="activeRequest.updatedAt">
                             <strong>עדכון אחרון:</strong> {{ activeRequest.updatedAt | date:'dd/MM/yyyy HH:mm' }}
                         </p>
-                        <button class="view-request-btn" (click)="viewActiveRequest()">
+                        <!-- <button class="view-request-btn" (click)="viewActiveRequest()">
                             צפייה בפרטי הבקשה
-                        </button>
+                        </button> -->
                     </div>
                 </div>
 

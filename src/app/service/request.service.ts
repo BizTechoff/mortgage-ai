@@ -40,7 +40,7 @@ export class RequestService {
         // קביעת סטטוס בהתאם לסוג השמירה (טיוטה או הגשה סופית)
         if (isFinalSubmission) {
             request.status = RequestStatus.WAITING_FOR_SELECTION; // סטטוס לבקשה שהוגשה סופית
-        } else if (!request.id || request.status === RequestStatus.NEW) {
+        } else if (!request.id || request.status.id === RequestStatus.NEW.id) {
             // אם זה יצירה חדשה או עדכון של טיוטה ראשונית, שמור כ-NEW (טיוטה)
             request.status = RequestStatus.NEW;
         }
@@ -52,7 +52,7 @@ export class RequestService {
     }
 
     static create(data: Partial<MortgageRequest>): Observable<MortgageRequest> {
-        console.log('RequestService: data.questionnaireData', data.questionnaireData)
+        // console.log('RequestService: data.questionnaireData', data.questionnaireData)
         return from(RequestController.create(data)).pipe(
             map(response => {
                 console.log(response, JSON.stringify(response))

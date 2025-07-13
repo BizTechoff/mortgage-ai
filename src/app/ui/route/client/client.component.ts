@@ -11,6 +11,7 @@ import { RequestStatus, RequestStatusLabels } from '../../../../shared/enum/requ
 import { RequestType, RequestTypeLabels } from '../../../../shared/enum/request-type.enum';
 import { Roles } from '../../../../shared/enum/roles';
 import { SignInController } from '../../../auth/SignInController';
+import { BusyService } from '../../../common-ui-elements';
 import { fixPhoneInput } from '../../../common/fields/PhoneField';
 import { UIToolsService } from '../../../common/UIToolsService';
 import { CalendarService } from '../../../service/callendar.service';
@@ -115,7 +116,8 @@ export class ClientComponent implements OnInit {
     private mortgageService: RequestService,
     // private documentService: DocumentService,
     private calendarService: CalendarService,
-    private fb: FormBuilder
+    private fb: FormBuilder,
+    private busy: BusyService
   ) {
     // Initialize mortgage form with currency validators, updated to match HTML
     this.mortgageForm = this.fb.group({
@@ -164,6 +166,7 @@ export class ClientComponent implements OnInit {
   }
   remult = remult;
   RequestType = RequestType;
+  RequestStatus = RequestStatus
   isCustomer = () => remult.isAllowed(Roles.customer);
 
   @HostListener('window:resize', ['$event'])
@@ -174,17 +177,44 @@ export class ClientComponent implements OnInit {
   async ngOnInit() {
     console.log('ClientComponent: ' + this.router.url);
     if (!remult.authenticated()) throw 'NOT AUTH - FROM REMULT';
+    if (!this.isCustomer()) throw 'How u got here?'
 
     this.route.queryParams.subscribe(async params => {
-      this.mobile = params['mobile'] as string;
-      if (!this.mobile) {
-        this.mobile = '';
-      }
-      this.mobile = fixPhoneInput(this.mobile);
-      this.requestType = RequestType.fromString(params['type'] as string);
-      console.log(`ClientComponent.ngOnInit: { mobile: '${this.mobile}', requestType: '${this.requestType.id}' }`);
-      await this.setVars();
+      this.busy.doWhileShowingBusy(
+        async () => {
+          this.mobile = fixPhoneInput(
+            params['mobile'] as string);
+
+          var found = false
+          if (this.mobile) {
+            var u = await remult.repo(User).findOne({ where: { mobile: this.mobile! } });
+            if (u) {
+              this.mobileValidated = !!u.verifyTime;
+              this.name = u.name;
+              found = true
+            }
+          }
+          if (!found) {
+            const u = await remult.repo(User).findId(remult.user?.id!)
+            if (u) {
+              this.mobileValidated = !!u.verifyTime;
+              this.name = u.name;
+              this.mobile = u.mobile
+            }
+          }
+
+          this.requestType = RequestType.fromString(params['type'] as string);
+          console.log(`ClientComponent.ngOnInit: { mobile: '${this.mobile}', requestType: '${this.requestType.id}' }`);
+          await this.setVars();
+        })
     });
+  }
+
+  async setVars() {
+    this.checkIfMobile();
+    this.updateFormProgress();
+    this.updateTotalSteps();
+    this.loadClientRequests();
   }
 
   async openNewRequest(type: RequestType) {
@@ -240,27 +270,60 @@ export class ClientComponent implements OnInit {
       });
   }
 
+  /**
+   * Load client's mortgage requests
+   */
+  loadClientRequests(): void {
+    if (!this.mobile) return;
+    this.loading.requests = true;
 
-  async setVars(): Promise<boolean> {
-    var isFromLink = this.mobile!.length > 0;
-    if (this.isCustomer() && isFromLink) {
-      const client = await remult.repo(User).findOne({ where: { mobile: this.mobile! } });
-      if (!client) {
-        throw 'NOT user for mobile : ' + this.mobile;
-      }
+    RequestService.getRequests().subscribe(
+      (requests) => {
+        this.requests = requests;
+        // Find active request
+        const activeRequest = this.requests.find(r =>
+          !RequestStatus.isCompletedStatus(r.status)
+        );
+        if (activeRequest) {
+          // alert(33)
+          this.setActiveRequest(activeRequest);
+        }
 
-      this.mobileValidated = !!client.verifyTime;
-      this.name = client.name;
-      this.mortgageForm.get('fullName')?.setValue(this.name, { emitEvent: false });
-      this.mortgageForm.get('mobile')?.setValue(this.mobile, { emitEvent: false });
+        this.loading.requests = false;
+      },
+      (error) => {
+        console.error('Error loading client requests:', error);
+        this.loading.requests = false;
+      });
+  }
+
+
+  /**
+   * Set active request and load its related data
+   */
+  setActiveRequest(request: MortgageRequest): void {
+    this.activeRequest = request;
+    this.activeRequestId = request.id; // שמור את ה-ID גם כאן
+    this.loadRequestDocuments(request.id);
+    this.loadRequestAppointment(request.id);
+    this.checkMissingDocuments(request.id);
+
+    if (RequestStatus.isProccessingStatus(request.status)) {
+      this.openNewRequest(request.requestType);
     }
+  }
 
-    this.checkIfMobile();
-    this.updateFormProgress();
-    this.updateTotalSteps();
-    this.loadClientRequests();
-
-    return isFromLink;
+  viewActiveRequest() {
+    // Implement logic to display the full details of activeRequest
+    console.log('Viewing active request:', this.activeRequest);
+    // You might navigate to a details page:
+    if (this.activeRequest?.id) {
+      this.router.navigate(['/request', this.activeRequest.id], {
+        queryParams: { returnUrl: '/client' }
+      });
+      // Or open a modal:
+      // this.dialog.open(RequestDetailsModalComponent, { data: this.activeRequest });
+    }
   }
 
   /**
@@ -356,61 +419,6 @@ export class ClientComponent implements OnInit {
 
     console.log(`Updated total steps: ${this.totalSteps} for request type: ${this.requestType}`);
     this.updateFormProgress();
-  }
-
-  /**
-   * Load client's mortgage requests
-   */
-  loadClientRequests(): void {
-    if (!this.mobile) return;
-    this.loading.requests = true;
-
-    RequestService.getRequests().subscribe(
-      (requests) => {
-        this.requests = requests;
-        // Find active request
-        const activeRequest = this.requests.find(r =>
-          !RequestStatus.isCompletedStatus(r.status)
-        );
-        if (activeRequest) {
-          this.setActiveRequest(activeRequest);
-        }
-
-        this.loading.requests = false;
-      },
-      (error) => {
-        console.error('Error loading client requests:', error);
-        this.loading.requests = false;
-      });
-  }
-
-  viewActiveRequest() {
-    // Implement logic to display the full details of activeRequest
-    console.log('Viewing active request:', this.activeRequest);
-    // You might navigate to a details page:
-    if (this.activeRequest?.id) {
-      this.router.navigate(['/request', this.activeRequest.id], {
-        queryParams: { returnUrl: '/client' }
-      });
-      // Or open a modal:
-      // this.dialog.open(RequestDetailsModalComponent, { data: this.activeRequest });
-    }
-  }
-
-
-  /**
-   * Set active request and load its related data
-   */
-  setActiveRequest(request: MortgageRequest): void {
-    this.activeRequest = request;
-    this.activeRequestId = request.id; // שמור את ה-ID גם כאן
-    this.loadRequestDocuments(request.id);
-    this.loadRequestAppointment(request.id);
-    this.checkMissingDocuments(request.id);
-
-    if (!RequestStatus.isCustomerCompletedStatus(request.status)) {
-      this.openNewRequest(request.requestType);
-    }
   }
 
   /**
@@ -555,44 +563,50 @@ export class ClientComponent implements OnInit {
    * Get form fields for current step
    */
   private getCurrentStepFields(): string[] {
+    const result = [] as string[]
     switch (this.currentStep) {
       case 1: // Personal and Demographic
-        const step1Fields = ['fullName', 'mobile', 'idNumber', 'address'];
+        result.push('fullName', 'mobile', 'idNumber', 'address')
         if (this.requestType === RequestType.new) {
-          step1Fields.push('email', 'maritalStatus', 'childrenDetails', 'husbandAge', 'wifeAge');
+          result.push('email', 'maritalStatus', 'childrenDetails', 'husbandAge', 'wifeAge');
         }
-        return step1Fields;
+        break
       case 2: // Financial and Employment
-        const step2Fields = ['monthlyIncome'];
+        result.push('monthlyIncome')
         if (this.requestType === RequestType.new) {
-          step2Fields.push('partnerIncome', 'employmentType', 'wifeEmploymentType', 'currentBank', 'paymentReturns', 'healthIssues', 'hasLongTermLoans');
+          result.push('partnerIncome', 'employmentType', 'wifeEmploymentType', 'currentBank', 'paymentReturns', 'healthIssues', 'hasLongTermLoans');
         } else { // Refinance
-          step2Fields.push('currentBank');
+          result.push('currentBank');
         }
-        return step2Fields;
+        break
       case 3: // Property and Loan
-        const step3Fields = ['propertyValue', 'loanAmount', 'loanTerm'];
+        result.push('propertyValue', 'loanAmount', 'loanTerm')
         if (this.requestType === RequestType.new) {
-          step3Fields.push('equityAmount', 'numberOfRooms', 'hasAdditionalProperty');
+          result.push('equityAmount', 'numberOfRooms', 'hasAdditionalProperty');
         } else { // Refinance
-          step3Fields.push('propertyCity', 'refinanceReason', 'remainingMortgageBalance', 'currentMonthlyMortgagePayment', 'hasOtherLoans');
+          result.push('propertyCity', 'refinanceReason', 'remainingMortgageBalance', 'currentMonthlyMortgagePayment', 'hasOtherLoans');
           // Conditional fields for 'hasOtherLoans' will be validated if 'yes'
           if (this.mortgageForm.get('hasOtherLoans')?.value === 'yes') {
-            step3Fields.push('otherLoansAmount', 'otherLoansMonthlyPayment');
+            result.push('otherLoansAmount', 'otherLoansMonthlyPayment');
           }
         }
-        return step3Fields;
+        break
       case 4: // New: Goals & Appointment; Renew: Documents & Goals
         if (this.requestType === RequestType.new) {
-          return ['desiredOutcome', 'mainDifficulties']; // Appointment is not a form control
+          result.push('desiredOutcome', 'mainDifficulties'); // Appointment is not a form control
         } else { // RequestType.renew (Documents & Goals step)
-          return ['paymentDifficultyRating', 'optimalSituation']; // Document upload is not a form control
+          result.push('paymentDifficultyRating', 'optimalSituation'); // Document upload is not a form control
         }
+        break
       case 5: // Renew: Appointment
-        return []; // Appointment handled by selectedAppointment, not form control
+        // return []; // Appointment handled by selectedAppointment, not form control
+        break
       default:
-        return [];
+        // return [];
+        break
     }
+    console.log('getCurrentStepFields.result: ' + result)
+    return result
   }
 
   /**
@@ -609,6 +623,7 @@ export class ClientComponent implements OnInit {
 
   // <<< חדש: מתודה לשמירת נתוני השלב הנוכחי
   private async saveCurrentStepData(): Promise<void> {
+    console.log('saveCurrentStepData')
     if (!this.activeRequestId) {
       console.error('No active request ID to save data. Cannot save step data.');
       return;
@@ -616,7 +631,8 @@ export class ClientComponent implements OnInit {
 
     const currentStepFields = this.getCurrentStepFields();
     const partialData: Partial<MortgageRequest> = {};
-
+    console.table('currentStepFields: ', currentStepFields)
+    console.log('partialData.empty: ', partialData)
     // Collect data for current step only
     currentStepFields.forEach(fieldName => {
       const control = this.mortgageForm.get(fieldName);
@@ -630,6 +646,7 @@ export class ClientComponent implements OnInit {
       }
     });
 
+    console.log('CLIENT: partialData.filled: ', partialData)
     RequestService.update(this.activeRequestId, partialData).subscribe(
       (response) => {
         if (response.success && response.data) {
@@ -649,7 +666,7 @@ export class ClientComponent implements OnInit {
    * Submit mortgage form (final submission)
    */
   submitForm(): void {
-    if (!this.customerId && this.isCustomer()) {
+    if (!this.customerId) {
       this.customerId = remult.user?.id!;
     }
 
@@ -683,6 +700,7 @@ export class ClientComponent implements OnInit {
 
     // Gather all form data for final submission
     const formData = this.mortgageForm.value;
+    console.log('formData', formData)
     const submitData: Partial<MortgageRequest> = {
       ...formData,
       monthlyIncome: this.getRawCurrencyValue(formData.monthlyIncome),

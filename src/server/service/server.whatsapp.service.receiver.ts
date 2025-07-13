@@ -341,7 +341,7 @@ export class ServerWhatsAppServiceReceived {
 
     if (needsToCompleteForm.includes(ongoingRequest.status)) {
       let stageParam = 'new-request';
-      if (ongoingRequest.status === RequestStatus.WAITING_FOR_DOCUMENTS || ongoingRequest.status === RequestStatus.WAITING_FOR_ADDITIONAL_DOCUMENTS) {
+      if (ongoingRequest.status.id === RequestStatus.WAITING_FOR_DOCUMENTS.id || ongoingRequest.status.id === RequestStatus.WAITING_FOR_ADDITIONAL_DOCUMENTS.id) {
         stageParam = 'upload-documents';
       }
       return `${ServerWhatsAppServiceReceived.platformUrl}/client?stage=${stageParam}&requestId=${ongoingRequest.id}&mobile=${user.mobile}`;

@@ -50,7 +50,8 @@ export class RequestStatus {
   /**
    * Checks if a given status instance represents a "completed" state.
    */
-  static isCustomerCompletedStatus(status: RequestStatus): boolean {
+  static isProccessingStatus(status: RequestStatus): boolean {
+    console.log('isProccessingStatus', status.id)
     const yes = [
       RequestStatus.NEW,
       RequestStatus.WAITING_FOR_SELECTION,
@@ -58,16 +59,18 @@ export class RequestStatus {
       RequestStatus.WAITING_FOR_DOCUMENTS,
       RequestStatus.WAITING_FOR_APPOINTMENT
     ] as RequestStatus[]
-    return !yes.includes(status);
+    const result = yes.includes(status);
+    console.log('result', result)
+    return result
   }
 
   /**
    * Checks if a given status instance represents a "completed" state.
    */
   static isCompletedStatus(status: RequestStatus): boolean {
-    return status === RequestStatus.COMPLETED ||
-      status === RequestStatus.REJECTED || // Often rejected/canceled are considered "completed" from a workflow perspective
-      status === RequestStatus.CANCELED;
+    return status.id === RequestStatus.COMPLETED.id ||
+      status.id === RequestStatus.REJECTED.id || // Often rejected/canceled are considered "completed" from a workflow perspective
+      status.id === RequestStatus.CANCELED.id;
   }
 
   /**

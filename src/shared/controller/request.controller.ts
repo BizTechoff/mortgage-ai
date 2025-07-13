@@ -76,6 +76,8 @@ export class RequestController extends ControllerBase {
     ): Promise<UpdateRequestResponse> {
         const result: UpdateRequestResponse = { success: false, error: { code: 0, message: '' }, timestamp: Date.now() };
         const requestRepo = remult.repo(MortgageRequest);
+        console.log('SERVER: partialData.filled: ', data)
+        console.log(`SERVER: newStatus`, `${newStatus?.id}`)
 
         try {
             const existingRequest = await requestRepo.findId(requestId);
@@ -99,7 +101,7 @@ export class RequestController extends ControllerBase {
             const updatedRequest = await requestRepo.save(existingRequest); // שמירת העדכונים
             result.data = updatedRequest;
             result.success = true;
-
+            console.log('SAVED!')
         } catch (error) {
             result.error!.code = 500;
             result.error!.message = error instanceof Error ? error.message : JSON.stringify(error);
@@ -154,13 +156,13 @@ export class RequestController extends ControllerBase {
         if (!ui) return result
         const repo = remult.repo(MortgageRequest)
         if (ui.roles?.includes(Roles.admin) || ui.roles?.includes(Roles.manager)) {
-            result.data.push(...await repo.find())
+            result.data.push(...await repo.find({ include: { customer: true } }))
         }
         else if (ui.roles?.includes(Roles.operator)) {
-            result.data.push(...await repo.find({ where: { assignedOperatorId: ui.id } }))
+            result.data.push(...await repo.find({ where: { assignedOperatorId: ui.id }, include: { customer: true } }))
         }
         else if (ui.roles?.includes(Roles.customer)) {
-            result.data.push(...await repo.find({ where: { customerId: ui.id } }))
+            result.data.push(...await repo.find({ where: { customerId: ui.id }, include: { customer: true } }))
         }
         result.success = true
         return result

@@ -102,9 +102,9 @@ export class MortgageRequestUpdateStatusComponent implements OnInit {
    */
   cancel(): void {
     this.cancelled.emit();
-      if (this.isFromOpenDialog()) {
-        this.close()
-      }
+    if (this.isFromOpenDialog()) {
+      this.close()
+    }
   }
 
   close() {

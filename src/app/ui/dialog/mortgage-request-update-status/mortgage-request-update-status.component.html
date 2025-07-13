@@ -16,7 +16,7 @@
             </select>
         </div>
 
-        <div *ngIf="form.get('status')?.value === RequestStatus.REJECTED" class="form-group">
+        <div *ngIf="form.get('status')?.value.id === RequestStatus.REJECTED.id" class="form-group">
             <label for="rejection-reason">סיבת הדחייה</label>
             <textarea 
                 id="rejection-reason" 

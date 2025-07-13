@@ -79,6 +79,13 @@ export function lastDateOfMonth(date: Date) {
         next.getDate() - 1));
 }
 
+// פונקציה עזר להשוואת תאריכים ללא שעות (אם calculateStats משווה תאריכים שלמים)
+export function isSameDay(d1: Date, d2: Date): boolean {
+    return d1.getFullYear() === d2.getFullYear() &&
+           d1.getMonth() === d2.getMonth() &&
+           d1.getDate() === d2.getDate();
+}
+
 export function dateFormat(date: Date, delimiter = '/') {
     let result = ''
     if (date) {

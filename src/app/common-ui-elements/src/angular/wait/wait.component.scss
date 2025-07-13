@@ -1,0 +1,83 @@
+// src/app/routes/client/client.component.scss - זה לא הקובץ הנכון, צריך להיות wait.component.scss
+
+/* src/app/shared/wait/wait.component.scss */ // <--- וודא שזה שם הקובץ הנכון
+
+/* CSS Reset for the component */
+:host {
+  /* Box Model Reset */
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  /* Font and Text Reset (if needed, otherwise remove) */
+  font-size: 100%;
+  font: inherit;
+  vertical-align: baseline;
+  text-decoration: none;
+  color: inherit;
+
+  /* Layout and Display Reset */
+  display: block; /* Ensures the host element takes up its own space */
+  width: auto;
+  height: auto;
+  min-width: 0;
+  max-width: none;
+  min-height: 0;
+  max-height: none;
+
+  /* Background Reset */
+  background: transparent;
+
+  /* Apply a softer reset to direct children to ensure they don't inherit unwanted styles */
+  > * { // Targets direct children of the host, including .wait-container
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    // Potentially remove font/text resets if they interfere with mat-progress-spinner
+    // font: inherit;
+    // vertical-align: baseline;
+    // text-decoration: none;
+    // color: inherit;
+    // background: transparent;
+  }
+}
+
+/* Specific styles for .wait-container */
+.wait-container {
+  direction: rtl; /* This is causing the right alignment */
+  text-align: center; /* This centers inline-block content within the container */
+  font-family: 'Rubik', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+//   min-height: 100vh; /* Make sure it takes full viewport height for centering purposes */
+//   width: 100vw; /* Make sure it takes full viewport width */
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* Center vertically in a flex column */
+  align-items: center; /* Center horizontally in a flex column */
+  background-color: #f8fafc;
+  overflow-x: hidden; /* Prevent horizontal overflow */
+  margin: 0; /* Explicitly reset margins */
+  padding: 0; /* Explicitly reset padding */
+  border: 0; /* Explicitly reset borders */
+}
+
+/* Ensure the progress spinner itself doesn't have weird margins/paddings */
+mat-progress-spinner {
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block; /* Ensure it takes full available width if flex item */
+  // You might want to control its size if it's too big
+  // width: 50px;
+  // height: 50px;
+}
+
+/* Styles for the dialog panel itself */
+// This class is applied to the dialog's root element
+.wait-dialog {
+  background: transparent !important; /* Make sure the dialog background is transparent */
+  box-shadow: none !important; /* Remove any box shadow from the dialog */
+  overflow: hidden; /* Hide any overflow */
+  max-width: fit-content !important; /* Allow dialog to shrink to content size */
+  max-height: fit-content !important;
+}

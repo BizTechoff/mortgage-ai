@@ -47,7 +47,7 @@ export function fixPhoneInput(s: string): string {
   // Declare 'orig' at the beginning of the function scope
   let orig = ''
 
-  if (!s) return s; // If input is empty or null, return as is.
+  if (!s || !s.trim().length) return orig; // If input is empty or null, return as is.
 
   let processed = s.toString().replace(/\D/g, ''); // Remove all non-digit characters
 

@@ -16,6 +16,7 @@ import { RequestType } from '../../../../shared/enum/request-type.enum';
 
 // ייבוא קומפוננטות דיאלוג/מודאל (צריך ליצור אותן בנפרד)
 import { openDialog } from '../../../common-ui-elements';
+import { dateFormat, isSameDay } from '../../../common/dateFunc';
 import { OperatorService } from '../../../service/operator.service';
 import { UserService } from '../../../service/user.service';
 import { MortgageRequestAssignRequestComponent } from '../../dialog/mortgage-request-assign-request/mortgage-request-assign-request.component';
@@ -161,15 +162,45 @@ export class OperatorComponent implements OnInit {
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    console.table(this.requests)
+    this.completedTodayRequests = this.requests.filter(r => {
 
-    this.completedTodayRequests = this.requests.filter(r =>
-      r.status === RequestStatus.COMPLETED && r.updatedAt.toDateString() === today.toDateString()
+const updatedAtDate = typeof r.updatedAt === 'string' ? new Date(r.updatedAt) : r.updatedAt;
+
+        console.log('r.updatedAt (original):', r.updatedAt);
+        console.log('updatedAtDate (converted):', updatedAtDate);
+
+        // ודא שההמרה הצליחה לפני שתמשיך
+        if (isNaN(updatedAtDate.getTime())) {
+            // אם ההמרה נכשלה (למשל, אם המחרוזת לא בפורמט תקין), דלג על פריט זה
+            console.error('Invalid Date for r.updatedAt:', r.updatedAt);
+            return false;
+        }
+
+        // עכשיו אתה יכול להשתמש במתודות של Date על updatedAtDate
+        // לדוגמה, כדי לבדוק אם הבקשה הושלמה היום:
+        // נניח ש-RequestStatus.COMPLETED הוא הסטטוס המעיד על סיום
+        const isCompleted = r.status.id === RequestStatus.COMPLETED.id; // השתמש בסטטוסים הנכונים שלך
+        const isUpdatedToday = isSameDay(updatedAtDate, today);
+// console.log('isUpdatedToday: ' + isUpdatedToday, 'isCompleted && isUpdatedToday: ' + isCompleted && isUpdatedToday)
+        return isCompleted && isUpdatedToday;
+
+      // console.log('r.updatedAt',r.updatedAt)
+      // console.log('r.updatedAt.getDate()',r.updatedAt.getDate())
+      // const d1 = dateFormat(r.updatedAt)
+      // const d2 = dateFormat(today)
+      // var competedToday = d1 === d2
+      // const result = r.status.id === RequestStatus.COMPLETED.id && competedToday
+      // return result
+    }
     ).length;
 
     this.overdueRequests = this.requests.filter(r =>
       r.currentStageDetails && r.currentStageDetails.untill && r.currentStageDetails.untill < today && !r.currentStageDetails.done
     ).length;
   }
+
+  
 
   // --- פעולות על טבלה / בקשות ---
 
@@ -211,15 +242,16 @@ export class OperatorComponent implements OnInit {
 
   async updateRequestStatus(request: MortgageRequest): Promise<void> {
     const oldStatus = request.status;
-    const currentStageId = (request as any).currentStageDetails?.id;
-
+    // alert(1)
     const response = await openDialog(
       MortgageRequestUpdateStatusComponent,
       dlg => dlg.args = { request: request },
       dlg => dlg?.form.value as UpdateStatusPayload
     );
-
+    console.log(`${response.status} !== ${oldStatus}`, response.status !== oldStatus)
     if (response && response.status !== oldStatus) {
+      console.log(`response.status !== oldStatus`, `${response.status} !== ${oldStatus}`, response.status !== oldStatus)
+      const currentStageId = (request as any).currentStageDetails?.id;
       try {
         // קריאה למתודת ה-Backend
         this.operatorService.updateRequestStatusAndStage(request.id, response.status, currentStageId).subscribe(

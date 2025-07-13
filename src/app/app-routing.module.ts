@@ -11,6 +11,7 @@ import { LoginComponent } from './ui/route/login/login.component';
 import { OperatorComponent } from './ui/route/operator/operator.component';
 import { RequestComponent } from './ui/route/request/request.component';
 import { UsersComponent } from './ui/route/users/users.component';
+import { CustomerListComponent } from './ui/route/customer-list/customer-list.component';
 
 const defaultRoute = 'login'; // Changed default route to 'login'
 const routes: Routes = [
@@ -27,6 +28,7 @@ const routes: Routes = [
   { path: 'request/:id', component: RequestComponent, canActivate: [AuthenticatedGuard], data: { name: 'פרטי בקשה' } },
   // { path: 'assign/:id', component: MortgageRequestAssignRequestComponent, canActivate: [AuthenticatedGuard], data: { name: 'שיוך מתפעלת' } },
 
+  { path: 'customer', component: CustomerListComponent, canActivate: [AdminOrManagerOrOperatorGuard], data: { name: 'לקוחות' } },
   // { path: 'demo', component: DemoDataControlAndDataAreaComponent },
   { path: 'user', component: UsersComponent, canActivate: [AdminGuard], data: { name: terms.userAccounts } },
   // { path: '/', redirectTo: '/' + defaultRoute, pathMatch: 'full' },

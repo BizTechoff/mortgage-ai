@@ -50,7 +50,7 @@ export class AdminComponent implements OnInit {
     if (!this.requests) {
       this.requests = [] as MortgageRequest[];
     }
-    return this.requests.filter(r => r.status === RequestStatus.NEW).length;
+    return this.requests.filter(r => r.status.id === RequestStatus.NEW.id).length;
   }
 
   constructor(
@@ -278,7 +278,7 @@ export class AdminComponent implements OnInit {
   /**
    * Update request status
    */
-  async updateRequestStatus(request: MortgageRequest) {
+  async selectRequestStatus(request: MortgageRequest) {
     const old = request.status
     const response = await openDialog(MortgageRequestUpdateStatusComponent,
       dlg => dlg.args = { request: request },
@@ -287,7 +287,8 @@ export class AdminComponent implements OnInit {
 
     if (response) {
       if (response.status !== old) {
-        RequestService.update(request.id, response.status).subscribe(
+      console.log(`CLIENT: response.status !== oldStatus`, `${response.status.id} !== ${old.id}`, response.status !== old)
+        RequestService.updateStatus(request.id, response.status).subscribe(
           (response) => {
             if (response.success && response.data) {// Update the request in the list
               const index = this.requests.findIndex(r => r.id === response.data?.id);
@@ -303,6 +304,7 @@ export class AdminComponent implements OnInit {
       }
     }
   }
+  
 
   /**
    * Get color class based on request status
