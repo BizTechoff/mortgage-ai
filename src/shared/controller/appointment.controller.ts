@@ -1,25 +1,25 @@
 import { BackendMethod, Controller, ControllerBase, remult } from "remult";
 
 import { MortgageRequest } from "../entity/request.entity";
-import { User } from "../entity/user.entity";
-import { Roles } from "../enum/roles";
-import { AssignOperatorRequest, AssignOperatorResponse, CreateRequestResponse, GetRequestsResponse } from "../type/request.type"; // Ensure this import is correct
-import { Observable, from, map, catchError, throwError } from "rxjs";
-import { Appointment } from "../entity/appointment.entity";
-import { RequestController } from "./request.controller";
+import { AppointmentDetails } from "../type/appointment.type";
 
 
 @Controller('appointment')
 export class AppointmentController extends ControllerBase {
 
     @BackendMethod({ allowed: true })
-    
+
     // --- ADD THIS MISSING METHOD ---
-    static async getAppointmentsByRequestId(requestId: string): Promise<Appointment[]> {
-        return await remult.repo(Appointment).find({
-            where: {requestId: requestId}
-        })
+    static async getAppointmentsByRequestId(requestId: string): Promise<AppointmentDetails[]> {
+        const result = [] as AppointmentDetails[]
+        const request = await remult.repo(MortgageRequest)
+            .findOne({ where: { id: requestId } })
+        if (request && request.appointmentDetails) {
+            result.push(request.appointmentDetails)
+        }
+        return result
     }
+
     // Build questionnaireData from form fields
     // const questionnaireData = {
     //     currentQuestionIndex: 0,

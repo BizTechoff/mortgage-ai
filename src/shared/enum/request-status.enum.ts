@@ -53,13 +53,13 @@ export class RequestStatus {
   static isProccessingStatus(status: RequestStatus): boolean {
     console.log('isProccessingStatus', status.id)
     const yes = [
-      RequestStatus.NEW,
-      RequestStatus.WAITING_FOR_SELECTION,
-      RequestStatus.QUESTIONNAIRE_IN_PROGRESS,
-      RequestStatus.WAITING_FOR_DOCUMENTS,
-      RequestStatus.WAITING_FOR_APPOINTMENT
-    ] as RequestStatus[]
-    const result = yes.includes(status);
+      RequestStatus.NEW.id,
+      RequestStatus.WAITING_FOR_SELECTION.id,
+      RequestStatus.QUESTIONNAIRE_IN_PROGRESS.id,
+      RequestStatus.WAITING_FOR_DOCUMENTS.id,
+      RequestStatus.WAITING_FOR_APPOINTMENT.id
+    ] as string[]
+    const result = yes.includes(status.id);
     console.log('result', result)
     return result
   }

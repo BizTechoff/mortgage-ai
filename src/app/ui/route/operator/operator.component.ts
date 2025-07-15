@@ -7,7 +7,6 @@ import { BehaviorSubject, from, Observable } from 'rxjs';
 import { map, startWith, switchMap, tap } from 'rxjs/operators';
 
 // ייבוא הישויות וה-Enums הרלוונטיים
-import { Appointment } from '../../../../shared/entity/appointment.entity';
 import { MortgageRequestStage } from '../../../../shared/entity/request-stage.entity';
 import { MortgageRequest } from '../../../../shared/entity/request.entity';
 import { User } from '../../../../shared/entity/user.entity';
@@ -21,6 +20,7 @@ import { OperatorService } from '../../../service/operator.service';
 import { UserService } from '../../../service/user.service';
 import { MortgageRequestAssignRequestComponent } from '../../dialog/mortgage-request-assign-request/mortgage-request-assign-request.component';
 import { MortgageRequestUpdateStatusComponent, UpdateStatusPayload } from '../../dialog/mortgage-request-update-status/mortgage-request-update-status.component';
+import { AppointmentDetails } from '../../../../shared/type/appointment.type';
 
 @Component({
   selector: 'app-operator',
@@ -31,7 +31,7 @@ export class OperatorComponent implements OnInit {
 
   // --- נתוני לוח הבקרה והטבלה ---
   requests: (MortgageRequest & { currentStageDetails?: MortgageRequestStage | null })[] = [];
-  upcomingAppointments: Appointment[] = [];
+  upcomingAppointments = [] as AppointmentDetails[];
   operators: User[] = [];
 
   // --- מצבי טעינה ---
@@ -135,8 +135,8 @@ export class OperatorComponent implements OnInit {
     this.loadingAppointments = true;
     // TODO: לשלוף רק פגישות המשויכות לבקשות של המתפעל
     this.upcomingAppointments = [
-      { id: '1', customerId: 'cust1', requestId: 'req1', startDate: new Date(new Date().setHours(new Date().getHours() + 2)), endDate: new Date(), durationMinutes: 60, reminderSent: false, completed: false, createdAt: new Date(), updatedAt: new Date() } as Appointment,
-      { id: '2', customerId: 'cust2', requestId: 'req2', startDate: new Date(new Date().setDate(new Date().getDate() + 1)), endDate: new Date(), durationMinutes: 90, reminderSent: false, completed: false, createdAt: new Date(), updatedAt: new Date() } as Appointment,
+      {date: new Date(new Date().setHours(new Date().getHours() + 2)), time: '10:00',location:'',operatorName:''},
+      {date: new Date(new Date().setHours(new Date().getDate() + 1)), time: '12:30',location:'',operatorName:''}
     ];
     this.loadingAppointments = false;
   }

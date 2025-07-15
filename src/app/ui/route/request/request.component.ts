@@ -5,8 +5,6 @@ import { remult } from 'remult';
 import { firstValueFrom } from 'rxjs';
 
 // ייבוא הישויות וה-Enums הרלוונטיים
-import { Appointment } from '../../../../shared/entity/appointment.entity';
-import { Document } from '../../../../shared/entity/document.entity';
 import { MortgageRequestStage } from '../../../../shared/entity/request-stage.entity';
 import { MortgageRequest } from '../../../../shared/entity/request.entity';
 import { Stage } from '../../../../shared/entity/stage.entity';
@@ -21,10 +19,18 @@ import { OperatorService } from '../../../service/operator.service';
 import { RequestService } from '../../../service/request.service';
 
 // ייבוא קומפוננטות דיאלוג/מודאל
+import { Bank } from '../../../../shared/enum/bank.enum';
+import { EmploymentType } from '../../../../shared/enum/employment-type.enum';
+import { MaritalStatus } from '../../../../shared/enum/marital-status.enum';
+import { RenewReason } from '../../../../shared/enum/renew.reason.enum copy';
 import { RequestType } from '../../../../shared/enum/request-type.enum';
+import { YesNo } from '../../../../shared/enum/yes-no.enum';
+import { AppointmentDetails } from '../../../../shared/type/appointment.type';
+import { DocumentItem } from '../../../../shared/type/document.type';
 import { UpdateStageProgressPayload } from '../../../../shared/type/request.type';
-import { openDialog } from '../../../common-ui-elements';
+import { BusyService, openDialog } from '../../../common-ui-elements';
 import { UIToolsService } from '../../../common/UIToolsService';
+import { DocumentService } from '../../../service/document.service';
 import { UserService } from '../../../service/user.service';
 import { MortgageRequestAssignRequestComponent } from '../../dialog/mortgage-request-assign-request/mortgage-request-assign-request.component';
 import { MortgageRequestUpdateStatusComponent, UpdateStatusPayload } from '../../dialog/mortgage-request-update-status/mortgage-request-update-status.component';
@@ -41,8 +47,8 @@ export class RequestComponent implements OnInit {
   request: (MortgageRequest & { currentStageDetails?: MortgageRequestStage | null }) | null = null;
   customer: User | null = null;
   assignedOperator: User | null = null;
-  documents: Document[] = [];
-  upcomingAppointments: Appointment[] = [];
+  documents: DocumentItem[] = [];
+  upcomingAppointments = [] as AppointmentDetails[];
   operators: User[] = []; // רשימת מפעילים לשיוך/העברה
   stages: Stage[] = []; // מערך לשמירת השלבים הרלוונטיים לסוג הבקשה
   returnUrl: string | null = null;
@@ -55,6 +61,12 @@ export class RequestComponent implements OnInit {
 
   RequestStatus = RequestStatus;
   DocumentType = DocumentType;
+  Bank = Bank
+  RenewReason = RenewReason
+  RequestType = RequestType
+  EmploymentType = EmploymentType
+  YesNo = YesNo
+  MaritalStatus = MaritalStatus
   remult = remult;
   Roles = Roles;
 
@@ -64,25 +76,36 @@ export class RequestComponent implements OnInit {
     private operatorService: OperatorService,
     private appointmentService: AppointmentService,
     private userService: UserService,
-    private ui: UIToolsService
+    private ui: UIToolsService,
+    private documentService: DocumentService,
+    private busy: BusyService
   ) { }
+  isCustomer = () => remult.isAllowed(Roles.customer)
 
   async ngOnInit(): Promise<void> {
-    this.requestId = this.route.snapshot.paramMap.get('id');
-    this.returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
 
-    if (this.requestId) {
-      await this.loadRequestDetails();
-      if (this.isAllowed(Roles.manager) || this.isAllowed(Roles.admin) || this.isAllowed(Roles.operator)) {
-        await this.loadOperators();
+    this.busy.doWhileShowingBusy(async () => {
+
+      this.requestId = this.route.snapshot.paramMap.get('id');
+      this.returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+      const rid = this.route.snapshot.queryParamMap.get('rid');
+      if (!this.requestId && rid) {
+        this.requestId = rid
       }
-      if (this.request) {
-        await this.loadStages(this.request.requestType);
+
+      if (this.requestId) {
+        await this.loadRequestDetails();
+        if (this.isAllowed(Roles.manager) || this.isAllowed(Roles.admin) || this.isAllowed(Roles.operator)) {
+          await this.loadOperators();
+        }
+        if (this.request) {
+          await this.loadStages(this.request.requestType);
+        }
+      } else {
+        console.error('Request ID is missing.');
+        this.loading = false;
       }
-    } else {
-      console.error('Request ID is missing.');
-      this.loading = false;
-    }
+    })
   }
 
   private async loadRequestDetails(): Promise<void> {
@@ -100,9 +123,9 @@ export class RequestComponent implements OnInit {
 
         // alert(JSON.stringify(fetchedRequest))
         // שליפת פרטי השלב הנוכחי אם הם לא נכללו
-        console.log(1,this.request)
+        console.log(1, this.request)
         if (!this.request.currentStageDetails && this.request.currentStageDesc) { // אם יש תיאור שלב אבל אין אובייקט שלם
-        console.log(2)
+          console.log(2)
           const currentStage = await remult.repo(MortgageRequestStage).findFirst(
             { request: this.request, done: undefined! }, // חפש שלב פעיל (שלא נגמר)
             { orderBy: { started: 'desc' }, include: { stage: true } } // כולל פרטי ה-Stage עצמו
@@ -129,15 +152,18 @@ export class RequestComponent implements OnInit {
 
   private async loadRequestDocuments(requestId: string): Promise<void> {
     this.loadingDocuments = true;
-    try {
-      this.documents = await remult.repo(Document).find({
-        where: { requestId: requestId }
-      });
-    } catch (error) {
-      console.error('Error loading documents:', error);
-    } finally {
-      this.loadingDocuments = false;
-    }
+
+    this.documents.splice(0)
+    this.documentService.getDocumentsByRequestId(requestId).subscribe(
+      (documents) => {
+        this.documents = documents
+        this.loadingDocuments = false;
+      },
+      (error) => {
+        console.error('Error loading request documents:', error);
+        this.loadingDocuments = false;
+      }
+    );
   }
 
   private async loadRequestAppointments(requestId: string): Promise<void> {
@@ -318,8 +344,8 @@ export class RequestComponent implements OnInit {
   }
 
 
-  downloadDocument(doc: Document): void {
-    window.open(doc.viewUrl, '_blank');
+  downloadDocument(doc: DocumentItem): void {
+    window.open(doc.id, '_blank');
   }
 
   goBack(): void {

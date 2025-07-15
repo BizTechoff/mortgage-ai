@@ -255,6 +255,25 @@ export class AdminComponent implements OnInit {
     }
   }
 
+  async updateRequestFinished(request: MortgageRequest) {
+    const yes = await this.ui.yesNoQuestion(`לסגור את הבקשה כהושלמה`)
+    if (yes) {
+      RequestService.updateStatus(request.id, RequestStatus.COMPLETED).subscribe(
+        (response) => {
+          if (response.success && response.data) {// Update the request in the list
+            const index = this.requests.findIndex(r => r.id === response.data?.id);
+            if (index !== -1) {
+              this.requests[index] = response.data;
+            }
+          }
+        },
+        (error) => {
+          console.error('Error updating request status:', error);
+        }
+      );
+    }
+  }
+
   async updateRequestAfterMeeting(request: MortgageRequest) {
 
     const yes = await this.ui.yesNoQuestion(`עדכון תוצאות הפגישה: 'כן' -ממשיך איתנו 'לא'-נדחה`)

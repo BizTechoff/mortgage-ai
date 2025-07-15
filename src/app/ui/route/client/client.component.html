@@ -1,17 +1,19 @@
-<div *ngIf="this.isCustomer()" class="mortgage-app-container" dir="rtl">
-    <header class="app-header">
+<div *ngIf="this.isCustomer() && isLoadedOnce" class="mortgage-app-container" dir="rtl">
+    <header *ngIf="true" class="app-header">
         <div class="logo-container">
             <img src="./assets/logo.png" alt="לוגו של שירות המשכנתאות" class="logo">
             <h1 class="app-title">ניהול בקשות משכנתה</h1>
         </div>
     </header>
-<!-- activeRequestId: {{this.activeRequestId}}, {{activeRequest?.id}} -->
+    <!-- activeRequestId: {{this.activeRequestId}}, {{activeRequest?.id}} -->
+    <!-- {{showWebForm}} -->
     <div class="content-wrapper">
         <main class="main-content">
             <div class="client-dashboard" *ngIf="!showWebForm">
                 <h2>ברוך הבא למערכת ניהול המשכנתאות</h2>
 
-                <div class="new-request-section" *ngIf="!activeRequest || activeRequest.status.id === RequestStatus.COMPLETED.id">
+                <div class="new-request-section"
+                    *ngIf="!activeRequest || activeRequest.status.id === RequestStatus.COMPLETED.id">
                     <h3>התחל בקשה חדשה</h3>
                     <div class="request-types">
                         <button class="request-type-btn" (click)="openNewRequest(RequestType.new)">
@@ -29,13 +31,16 @@
                     <div class="request-details-card">
                         <p><strong>מספר בקשה:</strong> {{ activeRequest.requestNumber }}</p>
                         <p><strong>סוג בקשה:</strong>
-                            {{ activeRequest.requestType === RequestType.new ? 'משכנתה חדשה' : 'מחזור משכנתה' }}</p>
+                            {{ activeRequest.requestType.caption }}</p>
                         <p><strong>סטטוס:</strong> {{ activeRequest.status.caption }}</p>
                         <p *ngIf="activeRequest.appointmentDetails">
                             <strong>פגישה קבועה:</strong> {{ activeRequest.appointmentDetails.date | date:'dd/MM/yyyy'
                             }} בשעה {{ activeRequest.appointmentDetails.time }}
                         </p>
-                        <p *ngIf="activeRequest.currentStageDesc"><strong>שלב בקשה:</strong> {{ activeRequest.currentStageDesc }}</p>
+                        <p
+                            *ngIf="activeRequest.currentStageDesc && !RequestStatus.isCompletedStatus(activeRequest.status)">
+                            <strong>שלב בקשה:</strong> {{ activeRequest.currentStageDesc }}
+                        </p>
                         <p *ngIf="activeRequest.updatedAt">
                             <strong>עדכון אחרון:</strong> {{ activeRequest.updatedAt | date:'dd/MM/yyyy HH:mm' }}
                         </p>
@@ -43,6 +48,9 @@
                             צפייה בפרטי הבקשה
                         </button> -->
                     </div>
+                    <button mat-raised-button (click)="openRequestPage(activeRequest)">
+                        <span>לפרטים נוספים</span>
+                    </button>
                 </div>
 
             </div>
@@ -55,6 +63,8 @@
 
                 <div class="web-form-header">
                     <h2>{{ 'בקשת ' + requestType.caption + '' }}</h2>
+                    <span *ngIf="activeRequest?.requestNumber"
+                        style="text-align: center;">#{{activeRequest!.requestNumber}}</span>
                 </div>
 
                 <div class="form-progress">
@@ -76,30 +86,31 @@
                         <div class="error-message" *ngIf="submitted && f['fullName'].errors">שדה חובה</div>
                     </div>
                     <div class="form-group">
-                        <label for="mobile" (click)="this.sendHiMessage()">נייד *</label>
+                        <!-- <label for="mobile" (click)="this.sendHiMessage()">נייד *</label> -->
+                        <label for="mobile">נייד *</label>
                         <input type="tel" id="mobile" formControlName="mobile" placeholder="050-12345678"
-                            [readOnly]="this.mobileValidated">
+                            [readOnly]="this.mobileValidated && false">
                         <div class="error-message" *ngIf="submitted && f['mobile'].errors">יש להזין נייד תקין
                         </div>
                     </div>
-                    <div class="form-group" *ngIf="requestType === RequestType.new">
+                    <div class="form-group" *ngIf="requestType.id === RequestType.new.id">
                         <label for="email">כתובת דואר אלקטרוני</label>
                         <input type="email" id="email" formControlName="email" placeholder="example@domain.com">
                         <div class="error-message" *ngIf="submitted && f['email'].errors">יש להזין כתובת דוא"ל תקינה
                         </div>
                     </div>
-                    <div class="form-group">
+                    <!-- <div class="form-group">
                         <label for="idNumber">מספר תעודת זהות *</label>
                         <input type="text" id="idNumber" formControlName="idNumber" placeholder="9 ספרות">
                         <div class="error-message" *ngIf="submitted && f['idNumber'].errors">מספר תעודת זהות לא תקין
                         </div>
-                    </div>
+                    </div> -->
                     <div class="form-group">
                         <label for="address">כתובת מגורים *</label>
                         <input type="text" id="address" formControlName="address" placeholder="כתובת מלאה">
                         <div class="error-message" *ngIf="submitted && f['address'].errors">שדה חובה</div>
                     </div>
-                    <div class="form-group" *ngIf="requestType === RequestType.new">
+                    <div class="form-group" *ngIf="requestType.id === RequestType.new.id">
                         <label for="maritalStatus">מצב משפחתי</label>
                         <select id="maritalStatus" formControlName="maritalStatus">
                             <option value="">בחר</option>
@@ -111,16 +122,16 @@
                             <option value="other">אחר</option>
                         </select>
                     </div>
-                    <div class="form-group" *ngIf="requestType === RequestType.new">
+                    <div class="form-group" *ngIf="requestType.id === RequestType.new.id">
                         <label for="childrenDetails">ילדים וגילם</label>
                         <input type="text" id="childrenDetails" formControlName="childrenDetails"
                             placeholder="לדוגמה: 2 (5, 10)">
                     </div>
-                    <div class="form-group" *ngIf="requestType === RequestType.new">
+                    <div class="form-group" *ngIf="requestType.id === RequestType.new.id">
                         <label for="husbandAge">גיל הבעל</label>
                         <input type="number" id="husbandAge" formControlName="husbandAge" placeholder="הזן גיל">
                     </div>
-                    <div class="form-group" *ngIf="requestType === RequestType.new">
+                    <div class="form-group" *ngIf="requestType.id === RequestType.new.id">
                         <label for="wifeAge">גיל האישה</label>
                         <input type="number" id="wifeAge" formControlName="wifeAge" placeholder="הזן גיל">
                     </div>
@@ -137,7 +148,8 @@
                         </div>
                         <div class="error-message" *ngIf="submitted && f['monthlyIncome'].errors">שדה חובה</div>
                     </div>
-                    <div class="form-group" *ngIf="requestType === RequestType.new">
+
+                    <div class="form-group" *ngIf="requestType.id === RequestType.new.id">
                         <label for="partnerIncome">הכנסה חודשית של בן/בת הזוג</label>
                         <div class="currency-input-wrapper">
                             <input type="text" id="partnerIncome" class="currency-input" formControlName="partnerIncome"
@@ -145,7 +157,7 @@
                             <span class="currency-symbol">₪</span>
                         </div>
                     </div>
-                    <div class="form-group" *ngIf="requestType === RequestType.new">
+                    <div class="form-group" *ngIf="requestType.id === RequestType.new.id">
                         <label for="employmentType">עיסוק הבעל *</label>
                         <select id="employmentType" formControlName="employmentType">
                             <option value="">בחר</option>
@@ -155,7 +167,7 @@
                         </select>
                         <div class="error-message" *ngIf="submitted && f['employmentType']?.errors">שדה חובה</div>
                     </div>
-                    <div class="form-group" *ngIf="requestType === RequestType.new">
+                    <div class="form-group" *ngIf="requestType.id === RequestType.new.id">
                         <label for="wifeEmploymentType">עיסוק האישה</label>
                         <select id="wifeEmploymentType" formControlName="wifeEmploymentType">
                             <option value="">בחר</option>
@@ -164,7 +176,7 @@
                             <option value="other">אחר</option>
                         </select>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group" *ngIf="requestType.id === RequestType.new.id">
                         <label for="currentBank">באיזה בנק מתנהל החשבון האישי *</label>
                         <select id="currentBank" formControlName="currentBank">
                             <option value="">בחר</option>
@@ -172,12 +184,12 @@
                             <option value="leumi">בנק לאומי</option>
                             <option value="mizrahi">בנק מזרחי טפחות</option>
                             <option value="discount">בנק דיסקונט</option>
-                            <option value="hapoalim">בנק הבינלאומי</option>
+                            <option value="benleumi">בנק הבינלאומי</option>
                             <option value="other">אחר</option>
                         </select>
                         <div class="error-message" *ngIf="submitted && f['currentBank']?.errors">שדה חובה</div>
                     </div>
-                    <div class="form-group" *ngIf="requestType === RequestType.new">
+                    <div class="form-group" *ngIf="requestType.id === RequestType.new.id">
                         <label for="paymentReturns">האם היו החזרות של צ'קים או תשלומים בשלושת החודשים האחרונים?</label>
                         <select id="paymentReturns" formControlName="paymentReturns">
                             <option value="">בחר</option>
@@ -186,7 +198,7 @@
                             <option value="maybe">ייתכן</option>
                         </select>
                     </div>
-                    <div class="form-group" *ngIf="requestType === RequestType.new">
+                    <div class="form-group" *ngIf="requestType.id === RequestType.new.id">
                         <label for="healthIssues">האם יש בעיות בריאותיות?</label>
                         <select id="healthIssues" formControlName="healthIssues">
                             <option value="">בחר</option>
@@ -195,7 +207,7 @@
                             <option value="maybe">ייתכן</option>
                         </select>
                     </div>
-                    <div class="form-group" *ngIf="requestType === RequestType.new">
+                    <div class="form-group" *ngIf="requestType.id === RequestType.new.id">
                         <label for="hasLongTermLoans">האם יש הלוואות נוספות לתקופה של יותר מ-18 חודשים?</label>
                         <select id="hasLongTermLoans" formControlName="hasLongTermLoans">
                             <option value="">בחר</option>
@@ -207,7 +219,7 @@
 
                 <div class="form-section" *ngIf="currentStep === 3">
                     <h3>פרטי הנכס והלוואה</h3>
-                    <div class="form-group" *ngIf="requestType === RequestType.renew">
+                    <div class="form-group" *ngIf="requestType.id === RequestType.renew.id">
                         <label for="propertyCity">באיזו עיר נמצא הנכס המדובר *</label>
                         <input type="text" id="propertyCity" formControlName="propertyCity" placeholder="הזן עיר">
                         <div class="error-message" *ngIf="submitted && f['propertyCity']?.errors">שדה חובה</div>
@@ -221,7 +233,7 @@
                         </div>
                         <div class="error-message" *ngIf="submitted && f['propertyValue'].errors">שדה חובה</div>
                     </div>
-                    <div class="form-group" *ngIf="requestType === RequestType.new">
+                    <div class="form-group" *ngIf="requestType.id === RequestType.new.id">
                         <label for="equityAmount">כמה כסף יש כהון עצמי?</label>
                         <div class="currency-input-wrapper">
                             <input type="text" id="equityAmount" class="currency-input" formControlName="equityAmount"
@@ -250,7 +262,7 @@
                         </select>
                         <div class="error-message" *ngIf="submitted && f['loanTerm'].errors">שדה חובה</div>
                     </div>
-                    <div class="form-group" *ngIf="requestType === RequestType.renew">
+                    <div class="form-group" *ngIf="requestType.id === RequestType.renew.id">
                         <label for="refinanceReason">סיבת המחזור *</label>
                         <select id="refinanceReason" formControlName="refinanceReason">
                             <option value="">בחר</option>
@@ -262,7 +274,7 @@
                         </select>
                         <div class="error-message" *ngIf="submitted && f['refinanceReason']?.errors">שדה חובה</div>
                     </div>
-                    <div class="form-group" *ngIf="requestType === RequestType.renew">
+                    <div class="form-group" *ngIf="requestType.id === RequestType.renew.id">
                         <label for="remainingMortgageBalance">מהי יתרת המשכנתא למיטב ידיעתך *</label>
                         <div class="currency-input-wrapper">
                             <input type="text" id="remainingMortgageBalance" class="currency-input"
@@ -273,7 +285,7 @@
                         <div class="error-message" *ngIf="submitted && f['remainingMortgageBalance']?.errors">שדה חובה
                         </div>
                     </div>
-                    <div class="form-group" *ngIf="requestType === RequestType.renew">
+                    <div class="form-group" *ngIf="requestType.id === RequestType.renew.id">
                         <label for="currentMonthlyMortgagePayment">מה התשלום החודשי שלך בגין המשכנתא *</label>
                         <div class="currency-input-wrapper">
                             <input type="text" id="currentMonthlyMortgagePayment" class="currency-input"
@@ -284,7 +296,7 @@
                         <div class="error-message" *ngIf="submitted && f['currentMonthlyMortgagePayment']?.errors">שדה
                             חובה</div>
                     </div>
-                    <div class="form-group" *ngIf="requestType === RequestType.renew">
+                    <div class="form-group" *ngIf="requestType.id === RequestType.renew.id">
                         <label for="hasOtherLoans">האם יש הלוואות נוספות מעבר למשכנתא?</label>
                         <select id="hasOtherLoans" formControlName="hasOtherLoans">
                             <option value="">בחר</option>
@@ -292,8 +304,9 @@
                             <option value="no">לא</option>
                         </select>
                     </div>
+                    <!-- AAA: {{mortgageForm.get('hasOtherLoans')?.value}} -->
                     <ng-container
-                        *ngIf="requestType === RequestType.renew && mortgageForm.get('hasOtherLoans')?.value === 'yes'">
+                        *ngIf="requestType.id === RequestType.renew.id && mortgageForm.get('hasOtherLoans')?.value === 'yes'">
                         <div class="form-group">
                             <label for="otherLoansAmount">מה גובה ההלוואות הנוספות מעבר למשכנתא *</label>
                             <div class="currency-input-wrapper">
@@ -317,12 +330,12 @@
                                 חובה</div>
                         </div>
                     </ng-container>
-                    <div class="form-group" *ngIf="requestType === RequestType.new">
+                    <div class="form-group" *ngIf="requestType.id === RequestType.new.id">
                         <label for="numberOfRooms">מספר חדרים</label>
                         <input type="number" id="numberOfRooms" formControlName="numberOfRooms"
                             placeholder="הזן מספר חדרים">
                     </div>
-                    <div class="form-group" *ngIf="requestType === RequestType.new">
+                    <div class="form-group" *ngIf="requestType.id === RequestType.new.id">
                         <label for="hasAdditionalProperty">האם יש דירה נוספת?</label>
                         <select id="hasAdditionalProperty" formControlName="hasAdditionalProperty">
                             <option value="">בחר</option>
@@ -334,62 +347,24 @@
                 </div>
 
                 <div class="form-section" *ngIf="currentStep === 4">
-                    <ng-container *ngIf="requestType === RequestType.new">
+                    <ng-container *ngIf="requestType.id === RequestType.new.id">
                         <h3>מטרות ופגישה</h3>
                         <div class="form-group">
                             <label for="desiredOutcome">מה התוצאה שאתם מעוניינים להשיג?</label>
                             <textarea id="desiredOutcome" formControlName="desiredOutcome"
-                                placeholder="לדוגמה: להקטין את ההחזר החודשי, לקבל הלוואה נוספת..."></textarea>
+                                placeholder="לדוגמה: להקטין את ההחזר החודשי, לקבל הלוואה נוספת..."
+                                style="width: 100%;"></textarea>
                         </div>
                         <div class="form-group">
                             <label for="mainDifficulties">מהם הקשיים העיקריים בקבלת משכנתא חדשה?</label>
                             <textarea id="mainDifficulties" formControlName="mainDifficulties"
-                                placeholder="לדוגמה: חוסר הון עצמי, קושי באישור בבנק..."></textarea>
+                                placeholder="לדוגמה: חוסר הון עצמי, קושי באישור בבנק..."
+                                style="width: 100%;"></textarea>
                         </div>
-                        <h4>בחירת מועד פגישה</h4>
-                        <p class="appointment-info">בחר מועד מתאים לפגישת ייעוץ:</p>
-                        <div class="appointment-slots">
-                            <div class="appointment-slot" *ngFor="let slot of availableSlots; let i = index"
-                                [class.selected]="selectedAppointment === i" (click)="selectAppointment(i)">
-                                <div class="slot-date">{{slot.date | date:'EEEE, dd/MM/yyyy' }}</div>
-                                <div class="slot-time">{{slot.time}}</div>
-                            </div>
-                        </div>
-                        <div class="error-message" *ngIf="appointmentError">יש לבחור מועד לפגישה</div>
                     </ng-container>
 
-                    <ng-container *ngIf="requestType === RequestType.renew">
-                        <h3>העלאת מסמכים</h3>
-                        <p class="upload-info">יש להעלות את המסמכים הבאים:</p>
-                        <div class="document-upload-list">
-                            <div class="document-upload-item">
-                                <label for="idDocument">תעודת זהות (כולל ספח) *</label>
-                                <input type="file" id="idDocument" (change)="onFileSelected($event, 'idDocument')"
-                                    accept=".jpg,.jpeg,.png,.pdf">
-                            </div>
-                            <div class="document-upload-item">
-                                <label for="salarySlips">3 תלושי שכר אחרונים *</label>
-                                <input type="file" id="salarySlips" (change)="onFileSelected($event, 'salarySlips')"
-                                    accept=".jpg,.jpeg,.png,.pdf">
-                            </div>
-                            <div class="document-upload-item">
-                                <label for="bankStatements">3 דפי חשבון בנק אחרונים *</label>
-                                <input type="file" id="bankStatements"
-                                    (change)="onFileSelected($event, 'bankStatements')" accept=".jpg,.jpeg,.png,.pdf">
-                            </div>
-                            <div class="document-upload-item">
-                                <label for="propertyDoc">מסמכי הנכס (טאבו/חוזה) *</label>
-                                <input type="file" id="propertyDoc" (change)="onFileSelected($event, 'propertyDoc')"
-                                    accept=".jpg,.jpeg,.png,.pdf">
-                            </div>
-                            <div class="document-upload-item">
-                                <label for="mortgageStatement">דו"ח יתרות משכנתה נוכחית *</label>
-                                <input type="file" id="mortgageStatement"
-                                    (change)="onFileSelected($event, 'mortgageStatement')"
-                                    accept=".jpg,.jpeg,.png,.pdf">
-                                <p class="upload-note">ניתן להוריד מהאזור האישי באתר הבנק </p>
-                            </div>
-                        </div>
+
+                    <ng-container *ngIf="requestType.id === RequestType.renew.id">
                         <div class="form-group">
                             <label for="paymentDifficultyRating">עד כמה היום אתם מתקשים לשלם את התשלום החודשי של המשכנתא
                                 וההלוואות?</label>
@@ -401,12 +376,85 @@
                         <div class="form-group">
                             <label for="optimalSituation">איך היית מגדיר את המצב האופטימלי עבורך</label>
                             <textarea id="optimalSituation" formControlName="optimalSituation"
-                                placeholder="לדוגמה: תשלום חודשי X, קיצור תקופה Y..."></textarea>
+                                placeholder="לדוגמה: תשלום חודשי X, קיצור תקופה Y..." style="width: 100%;"></textarea>
+                        </div>
+                    </ng-container>
+
+                    <!-- <ng-container>
+                        <h4>בחירת מועד פגישה</h4>
+                        <p class="appointment-info">בחר מועד מתאים לפגישת ייעוץ:</p>
+                        <div class="appointment-slots">
+                            <div class="appointment-slot" *ngFor="let slot of availableSlots; let i = index"
+                                [class.selected]="selectedAppointment === i" (click)="selectAppointment(i)">
+                                <div class="slot-date">{{slot.date | date:'EEEE, dd/MM/yyyy' }}</div>
+                                <div class="slot-time">{{slot.time}}</div>
+                            </div>
+                        </div>
+                        <div class="error-message" *ngIf="appointmentError">יש לבחור מועד לפגישה</div>
+                    </ng-container> -->
+
+                    <ng-container *ngIf="requestType.id === RequestType.renew.id && !this.loading.documents">
+                        <h3>העלאת מסמכים</h3>
+                        <p class="upload-info">יש להעלות את המסמכים הבאים:</p>
+                        <div class="document-upload-list">
+                            <div class="document-upload-item">
+                                <label for="id_card">תעודת זהות (כולל ספח) *</label>
+                                <input type="file" id="id_card" (change)="onFileSelected($event, 'id_card')"
+                                    accept=".jpg,.jpeg,.png,.pdf">
+                                <ul *ngIf="getUploadedDocuments(DocumentType.ID_CARD).length">
+                                    <li *ngFor="let doc of getUploadedDocuments(DocumentType.ID_CARD)">
+                                        <span>{{doc.name}}</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="document-upload-item">
+                                <label for="salary_slip">3 תלושי שכר אחרונים *</label>
+                                <input type="file" id="salary_slip" (change)="onFileSelected($event, 'salary_slip')"
+                                    accept=".jpg,.jpeg,.png,.pdf" multiple>
+                                <ul *ngIf="getUploadedDocuments(DocumentType.SALARY_SLIP).length">
+                                    <li *ngFor="let doc of getUploadedDocuments(DocumentType.SALARY_SLIP)">
+                                        <span>{{doc.name}}</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="document-upload-item">
+                                <label for="bank_statement">3 דפי חשבון בנק אחרונים *</label>
+                                <input type="file" id="bank_statement"
+                                    (change)="onFileSelected($event, 'bank_statement')" accept=".jpg,.jpeg,.png,.pdf"
+                                    multiple>
+                                <ul *ngIf="getUploadedDocuments(DocumentType.BANK_STATEMENT).length">
+                                    <li *ngFor="let doc of getUploadedDocuments(DocumentType.BANK_STATEMENT)">
+                                        <span>{{doc.name}}</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="document-upload-item">
+                                <label for="property_docs">מסמכי הנכס (טאבו/חוזה) *</label>
+                                <input type="file" id="property_docs" (change)="onFileSelected($event, 'property_docs')"
+                                    accept=".jpg,.jpeg,.png,.pdf" multiple>
+                                <ul *ngIf="getUploadedDocuments(DocumentType.PROPERTY_DOCS).length">
+                                    <li *ngFor="let doc of getUploadedDocuments(DocumentType.PROPERTY_DOCS)">
+                                        <span>{{doc.name}}</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="document-upload-item">
+                                <label for="mortgage_statement">דו"ח יתרות משכנתה נוכחית *</label>
+                                <input type="file" id="mortgage_statement"
+                                    (change)="onFileSelected($event, 'mortgage_statement')"
+                                    accept=".jpg,.jpeg,.png,.pdf">
+                                <p class="upload-note">ניתן להוריד מהאזור האישי באתר הבנק </p>
+                                <ul *ngIf="getUploadedDocuments(DocumentType.MORTGAGE_STATEMENT).length">
+                                    <li *ngFor="let doc of getUploadedDocuments(DocumentType.MORTGAGE_STATEMENT)">
+                                        <span>{{doc.name}}</span>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
                     </ng-container>
                 </div>
 
-                <div class="form-section" *ngIf="currentStep === 5 && requestType === RequestType.renew">
+                <div class="form-section" *ngIf="currentStep === 5">
                     <h3>בחירת מועד פגישה</h3>
                     <p class="appointment-info">בחר מועד מתאים לפגישת ייעוץ:</p>
                     <div class="appointment-slots">

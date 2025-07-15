@@ -5,8 +5,10 @@ import { DocumentType } from "../enum/document-type.enum";
 import { RequestStatus } from "../enum/request-status.enum";
 import { RequestType } from "../enum/request-type.enum";
 import { Roles } from "../enum/roles";
-import { User } from "./user.entity";
 import { MortgageRequestStage } from "./request-stage.entity";
+import { User } from "./user.entity";
+import { DocumentItem } from "../type/document.type";
+import { AppointmentDetails } from "../type/appointment.type";
 
 @Entity<MortgageRequest>("request", {
   allowApiCrud: true,
@@ -40,7 +42,7 @@ export class MortgageRequest extends IdEntity {
     caption: "סוג בקשה",
     validate: [Validators.required("סוג בקשה נדרש")]
   })
-  requestType!: RequestType;
+  requestType = RequestType.none
 
   @Field(() => RequestStatus, {
     caption: "סטטוס"
@@ -84,7 +86,7 @@ export class MortgageRequest extends IdEntity {
     fullName?: string; //
     mobile?: string; //
     email?: string; //
-    idNumber?: string; //
+    // idNumber?: string; //
     address?: string; //
   };
 
@@ -139,6 +141,7 @@ export class MortgageRequest extends IdEntity {
     propertyValue?: number; //
     numberOfRooms?: number; //
     hasAdditionalProperty?: string; //
+    equityAmount?: number; // הון עצמי הוא חלק מפרטי ההלוואה החדשה
     // שדה חמישי אם יש, או להשאיר כך
   };
 
@@ -149,9 +152,8 @@ export class MortgageRequest extends IdEntity {
     allowNull: true
   })
   loanData?: {
-    requestedAmount?: number; //
-    loanPeriod?: number; //
-    equityAmount?: number; // הון עצמי הוא חלק מפרטי ההלוואה החדשה
+    loanAmount?: number; //
+    loanTerm?: number; //
     // שדה רביעי וחמישי אם יש, או להשאיר כך
   };
 
@@ -189,6 +191,8 @@ export class MortgageRequest extends IdEntity {
     desiredOutcome?: string; //
     mainDifficulties?: string; //
     // שדה שלישי עד חמישי אם יש, או להשאיר כך
+    paymentDifficultyRating?: string; //
+    optimalSituation?: string; //
   };
 
 
@@ -197,22 +201,13 @@ export class MortgageRequest extends IdEntity {
     caption: "מסמכים מצורפים",
     allowNull: true
   })
-  documents?: Array<{
-    id: string;
-    name: string;
-    type?: DocumentType;
-  }>;
+  documents?:  DocumentItem[]
 
   @Fields.object({
     caption: "פרטי פגישה",
     allowNull: true
   })
-  appointmentDetails?: {
-    date: Date;
-    time: string;
-    location?: string;
-    operatorName?: string;
-  };
+  appointmentDetails?: AppointmentDetails;
 
   // --- שדות כלליים/מערכתיים ---
   @Fields.string({

@@ -33,7 +33,7 @@ export class CustomerListComponent {
       customer: true,
       disabled: false
     },
-    columnSettings: (user) => [user.name, user.mobile, user.email, user.settings, user.verifyCode, user.verifyTime, user.activeRequestsCount, user.optOut, user.createdAt, user.updatedAt],
+    columnSettings: (user) => [user.name, user.mobile, user.email, user.verifyCode, user.verifyTime, user.activeRequestsCount, user.optOut, user.settings, user.createdAt, user.updatedAt],
     rowCssClass: (row) => (row.disabled ? 'canceled' : ''),
     gridButtons: [
       {

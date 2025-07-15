@@ -3,6 +3,7 @@ import { ValueListFieldType } from 'remult';
 
 @ValueListFieldType()
 export class RequestType {
+  static none = new RequestType('none', 'לא נבחר');
   static new = new RequestType('new', 'משכנתה חדשה');
   static renew = new RequestType('renew', 'מחזור משכנתה');
   static loan = new RequestType('loan', 'הלוואה אישית');
@@ -14,7 +15,7 @@ export class RequestType {
 
   static getAllTypes(): RequestType[] {
     return Object.values(RequestType).filter(type =>
-      type instanceof RequestType
+      type instanceof RequestType && type.id !== RequestType.none.id
     ) as RequestType[];
   }
 
@@ -24,7 +25,7 @@ export class RequestType {
 
 
   static fromString(type: string): RequestType {
-    var result = RequestType.new
+    var result = RequestType.none
     if (type) {
       // console.log('fromString: ' + type)
       const entries = Object.fromEntries(

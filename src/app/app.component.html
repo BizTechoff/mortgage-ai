@@ -1,6 +1,6 @@
 <div style="height: 100%; display: flex; flex-direction: column">
-  <mat-toolbar *ngIf="!this.isLoginPage && !this.isClient()" color="primary" style="flex-shrink: 0">
-    <button mat-button class="sidenav-toggle" (click)="sidenav.toggle()">
+  <mat-toolbar *ngIf="!this.isLoginPage && !this.isClient() || false" color="primary" style="flex-shrink: 0">
+    <button *ngIf="!this.isClient()" mat-button class="sidenav-toggle" (click)="sidenav.toggle()">
       <mat-icon>menu</mat-icon>
     </button>
     <span class="toolbar-title">{{ currentTitle() }}</span>
@@ -41,6 +41,7 @@
       </h3>
       <mat-nav-list role="list">
         <ng-container *ngFor="let m of router.config">
+          <mat-divider *ngIf="shouldDisplayRoute(m) && m.path === 'user'"></mat-divider>
           <a
             mat-list-item
             *ngIf="shouldDisplayRoute(m)"

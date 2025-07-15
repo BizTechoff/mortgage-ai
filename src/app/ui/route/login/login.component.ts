@@ -103,8 +103,10 @@ export class LoginComponent implements OnInit {
   }
 
   setMobileAsMask(mobile = '') {
-    if (!mobile || !(mobile.length > 3)) {
+    if (!mobile) {
       return ''
+    } if (!(mobile.length > 3)) {
+      return mobile
     }
 
     let value = mobile.replace(/\D/g, ''); // Remove all non-digit characters

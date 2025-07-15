@@ -7,12 +7,13 @@ import { MortgageRequest } from '../../shared/entity/request.entity';
 import { User } from '../../shared/entity/user.entity'; // ודא שישות User קיימת
 import { RequestStatus } from '../../shared/enum/request-status.enum';
 import { RequestType } from '../../shared/enum/request-type.enum';
+import { Roles } from '../../shared/enum/roles';
 import { WhatsAppMessageReceivedInfo, WhatsAppResponse } from '../../shared/type/whatsapp.type';
 import { ServerWhatsAppServiceSender } from './server.whatsapp.service.sender';
 
 interface ValidationResult<T> {
   isValid: boolean;
-  parsedData?: T;
+  requestNumber?: T;
   errorMessage?: string;
 }
 
@@ -47,6 +48,9 @@ export class ServerWhatsAppServiceReceived {
         messageInfo.fromMobile,
         messageInfo.fromName || messageInfo.fromMobile
       );
+      remult.user = { id: user.id, name: user.name, roles: [Roles.customer] }
+
+      console.log('remult.user', JSON.stringify(remult.user))
 
       // 2. ניהול שיחה וסטטוס:
       conversation = await conversationRepo.findFirst(
@@ -90,10 +94,10 @@ export class ServerWhatsAppServiceReceived {
           if (ServerWhatsAppServiceReceived.isInitialGreeting(lowerCaseText)) { // (התחלה/בקשה)
             const ongoingRequest = await ServerWhatsAppServiceReceived.getOngoingMortgageRequest(user);
             if (ongoingRequest) {
-              const link = ServerWhatsAppServiceReceived.getRelevantRequestLink(user, ongoingRequest);
+              const link = ServerWhatsAppServiceReceived.getRelevantRequestLink(user, ongoingRequest) + '?mobile=' + user.mobile + '&rid=' + ongoingRequest.id;
               response = await ServerWhatsAppServiceSender.sendWhatsAppMessageWithDeduplication(
                 conversation,
-                terms.existingRequestFound(ongoingRequest.id, ongoingRequest.status.caption, link, user.name || user.mobile)
+                terms.existingRequestFound(ongoingRequest.requestNumber, ongoingRequest.status.caption, link, user.name)
               );
               // <--- שינוי: אין צורך לשנות סטטוס ל-awaiting_documents/refinance_documents
               // הבוט פשוט יאשר את הלינק ויחזור למצב המתנה כללי
@@ -116,8 +120,8 @@ export class ServerWhatsAppServiceReceived {
 
         case 'awaiting_service_option':
           const optionValidation = ServerWhatsAppServiceReceived.validateServiceOption(lowerCaseText);
-          if (optionValidation.isValid && optionValidation.parsedData !== undefined) {
-            switch (optionValidation.parsedData) {
+          if (optionValidation.isValid && optionValidation.requestNumber !== undefined) {
+            switch (optionValidation.requestNumber) {
               case 1: // בקשה חדשה למשכנתה
                 conversation.selectedRequestType = RequestType.new;
                 const newMortgageLink = ServerWhatsAppServiceReceived.getNewRequestFormLink(user, RequestType.new);
@@ -167,7 +171,7 @@ export class ServerWhatsAppServiceReceived {
           // <--- שינוי: קטעי קוד אלו עדיין רלוונטיים אם הלקוח מגיב בשלב זה,
           // אך הם לא אמורים להיות ה-currentStep שהבוט מעביר אליו לאחר שליחת לינק
           const currentRequestType = conversation.selectedRequestType;
-          if (currentRequestType === RequestType.new || currentRequestType === RequestType.renew) {
+          if (currentRequestType.id === RequestType.new.id || currentRequestType.id === RequestType.renew.id) {
             const retryLink = ServerWhatsAppServiceReceived.getNewRequestFormLink(user, currentRequestType);
             response = await ServerWhatsAppServiceSender.sendWhatsAppMessageWithDeduplication(
               conversation,
@@ -184,44 +188,32 @@ export class ServerWhatsAppServiceReceived {
 
         case 'awaiting_id_for_status_check':
           const statusIdValidation = ServerWhatsAppServiceReceived.validateIdForStatusCheck(messageInfo.text);
-          if (statusIdValidation.isValid && statusIdValidation.parsedData) {
-            const idToSearch = statusIdValidation.parsedData;
-            conversation.context.idForStatusCheck = idToSearch;
+          if (statusIdValidation.isValid && statusIdValidation.requestNumber) {
+            const requestNumber = statusIdValidation.requestNumber;
+            conversation.context.idForStatusCheck = requestNumber;
+            console.log('requestNumber', requestNumber)
+            console.log('potentialUser', user.name)
 
-            let targetUserId: string | undefined;
-            const potentialUser = await remult.repo(User).findFirst({
-              $or: [
-                { id: idToSearch },
-                { mobile: idToSearch }
-              ]
-            });
-
-            if (potentialUser) {
-              targetUserId = potentialUser.id;
-            } else {
-              targetUserId = idToSearch;
-            }
-
-            const existingRequest = await mortgageRequestRepo.findFirst({
-              $or: [
-                { id: idToSearch },
-                { customerId: targetUserId }
-              ]
-            });
-
-            if (existingRequest) {
-              const platformLink = `${ServerWhatsAppServiceReceived.platformUrl}/status-check?requestId=${existingRequest.id}`;
-              response = await ServerWhatsAppServiceSender.sendWhatsAppMessageWithDeduplication(
-                conversation,
-                `סטטוס בקשתך #${existingRequest.id} (${RequestType.getAllTypes().find(rt => rt.id === existingRequest.requestType.id)?.caption}):\n*${existingRequest.status.caption}*.\nלפרטים נוספים: ${platformLink}`
-              );
-            } else {
+            const existingRequest = await mortgageRequestRepo.findFirst(
+              { requestNumber: requestNumber }
+            );
+            if (!existingRequest) {
+              console.log('existingRequest NO')
               response = await ServerWhatsAppServiceSender.sendWhatsAppMessageWithDeduplication(
                 conversation,
                 terms.requestNotFound
               );
               conversation.currentStep = 'awaiting_id_for_status_check';
+              break
             }
+            console.log('existingRequest', existingRequest?.requestNumber)
+
+            console.log('existingRequest YES')
+            const platformLink = `${ServerWhatsAppServiceReceived.platformUrl}`// /status-check?requestId=${existingRequest.id}`;
+            response = await ServerWhatsAppServiceSender.sendWhatsAppMessageWithDeduplication(
+              conversation,
+              `סטטוס בקשתך #${existingRequest.requestNumber} (${RequestType.getAllTypes().find(rt => rt.id === existingRequest.requestType.id)?.caption}):\n*${existingRequest.status.caption}*.\nלפרטים נוספים: ${platformLink}`
+            );
             conversation.currentStep = 'initial_greeting';
           } else {
             response = await ServerWhatsAppServiceSender.sendWhatsAppMessageWithDeduplication(
@@ -330,24 +322,25 @@ export class ServerWhatsAppServiceReceived {
   }
 
   private static getRelevantRequestLink(user: User, ongoingRequest: MortgageRequest): string {
-    const needsToCompleteForm = [
-      RequestStatus.NEW,
-      RequestStatus.WAITING_FOR_SELECTION,
-      RequestStatus.QUESTIONNAIRE_IN_PROGRESS,
-      RequestStatus.WAITING_FOR_DOCUMENTS,
-      RequestStatus.WAITING_FOR_ADDITIONAL_DOCUMENTS,
-      RequestStatus.WAITING_FOR_CLIENT_RESPONSE
-    ];
+    return `${ServerWhatsAppServiceReceived.platformUrl}`
+    // const needsToCompleteForm = [
+    //   RequestStatus.NEW,
+    //   RequestStatus.WAITING_FOR_SELECTION,
+    //   RequestStatus.QUESTIONNAIRE_IN_PROGRESS,
+    //   RequestStatus.WAITING_FOR_DOCUMENTS,
+    //   RequestStatus.WAITING_FOR_ADDITIONAL_DOCUMENTS,
+    //   RequestStatus.WAITING_FOR_CLIENT_RESPONSE
+    // ];
 
-    if (needsToCompleteForm.includes(ongoingRequest.status)) {
-      let stageParam = 'new-request';
-      if (ongoingRequest.status.id === RequestStatus.WAITING_FOR_DOCUMENTS.id || ongoingRequest.status.id === RequestStatus.WAITING_FOR_ADDITIONAL_DOCUMENTS.id) {
-        stageParam = 'upload-documents';
-      }
-      return `${ServerWhatsAppServiceReceived.platformUrl}/client?stage=${stageParam}&requestId=${ongoingRequest.id}&mobile=${user.mobile}`;
-    } else {
-      return `${ServerWhatsAppServiceReceived.platformUrl}/request/${ongoingRequest.id}`;
-    }
+    // if (needsToCompleteForm.includes(ongoingRequest.status)) {
+    //   let stageParam = 'new-request';
+    //   if (ongoingRequest.status.id === RequestStatus.WAITING_FOR_DOCUMENTS.id || ongoingRequest.status.id === RequestStatus.WAITING_FOR_ADDITIONAL_DOCUMENTS.id) {
+    //     stageParam = 'upload-documents';
+    //   }
+    //   return `${ServerWhatsAppServiceReceived.platformUrl}`;
+    // } else {
+    //   return `${ServerWhatsAppServiceReceived.platformUrl}/request/${ongoingRequest.id}`;
+    // }
   }
 
   private static getNewRequestFormLink(user: User, requestType: RequestType): string {
@@ -376,13 +369,16 @@ export class ServerWhatsAppServiceReceived {
       text.includes('התעניינות') ||
       text.includes('משכנתא') ||
       text.includes('משכנתה') ||
-      text.includes('התחל מחדש');
+      text.includes('התחל מחדש') ||
+      text.includes('akuo') ||
+      text.includes('vhh') ||
+      text.includes('v,jk njsa');
   }
 
   private static validateServiceOption(text: string): ValidationResult<number> {
     const num = parseInt(text);
     if (!isNaN(num) && num >= 1 && num <= 4) {
-      return { isValid: true, parsedData: num };
+      return { isValid: true, requestNumber: num };
     }
     return { isValid: false, errorMessage: terms.invalidOption };
   }
@@ -394,7 +390,7 @@ export class ServerWhatsAppServiceReceived {
       const requestedAmount = Number(parts[1]);
 
       if (clientName && !isNaN(requestedAmount) && requestedAmount > 0) {
-        return { isValid: true, parsedData: { clientName, requestedAmount } };
+        return { isValid: true, requestNumber: { clientName, requestedAmount } };
       }
     }
     return { isValid: false, errorMessage: terms.invalidNewMortgageFormat };
@@ -407,16 +403,16 @@ export class ServerWhatsAppServiceReceived {
       const outstandingAmount = Number(parts[1]);
 
       if (loanType && !isNaN(outstandingAmount) && outstandingAmount > 0) {
-        return { isValid: true, parsedData: { loanType, outstandingAmount } };
+        return { isValid: true, requestNumber: { loanType, outstandingAmount } };
       }
     }
     return { isValid: false, errorMessage: terms.invalidRefinanceFormat };
   }
 
-  private static validateIdForStatusCheck(text: string): ValidationResult<string> {
+  private static validateIdForStatusCheck(text: string): ValidationResult<number> {
     const trimmedText = text.trim();
     if (trimmedText.length > 0) {
-      return { isValid: true, parsedData: trimmedText };
+      return { isValid: true, requestNumber: parseInt(trimmedText) };
     }
     return { isValid: false, errorMessage: terms.invalidIdFormat };
   }

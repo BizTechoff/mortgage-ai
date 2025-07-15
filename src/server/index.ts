@@ -10,6 +10,7 @@ import { fixPhoneInput } from '../app/common/fields/PhoneField'
 import { WhatsAppMessageReceivedInfo, WhatsAppWebhookPayload } from '../shared/type/whatsapp.type'
 import { api } from './api'
 import { ServerWhatsAppServiceReceived } from './service/server.whatsapp.service.receiver'
+import { SqlDatabase } from 'remult'
 // require('../server/service/server.whatsapp.service.sender')
 config()
 

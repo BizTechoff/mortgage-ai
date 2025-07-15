@@ -54,7 +54,7 @@
     <!-- Filter Section -->
     <div class="filter-section">
       <h3 class="filter-header">סינון וחיפוש</h3>
-      
+
       <form [formGroup]="filterForm" class="filter-form">
         <div class="filter-grid">
           <!-- Status Filter -->
@@ -63,7 +63,7 @@
             <select formControlName="status" class="form-control">
               <option value="">כל הסטטוסים</option>
               @for (status of requestStatuses; track status.id) {
-                <option [value]="status">{{ status.caption }}</option>
+              <option [value]="status">{{ status.caption }}</option>
               }
             </select>
           </div>
@@ -93,8 +93,8 @@
           <div class="form-group">
             <label class="form-label">חיפוש</label>
             <div class="search-wrapper">
-              <input type="text" formControlName="search" class="form-control search-input" 
-                     placeholder="חיפוש לפי שם, טלפון...">
+              <input type="text" formControlName="search" class="form-control search-input"
+                placeholder="חיפוש לפי שם, טלפון...">
               <i class="fas fa-search search-icon"></i>
             </div>
           </div>
@@ -118,6 +118,7 @@
             <th>לקוח</th>
             <th>סוג בקשה</th>
             <th>סטטוס</th>
+            <th>שלב נוכחי</th>
             <th>תאריך יצירה</th>
             <th>תאריך עדכון אחרון</th>
             <th>פעולות</th>
@@ -125,46 +126,52 @@
         </thead>
         <tbody>
           @for (request of requests; track request.id) {
-            <tr (click)="viewRequestDetails(request)" class="table-row">
-              <td><strong>{{ request.requestNumber }}</strong></td>
-              <td>
-                <div><strong>{{ request.customer ? request.customer.name : 'N/A' }}</strong></div>
-                <div class="customer-phone">{{ request.customer ? request.customer.mobile : 'N/A' }}</div>
-              </td>
-              <td>{{ request.requestType ? request.requestType.caption : 'N/A' }}</td>
-              <td>
-                <span class="status-badge" [ngClass]="getStatusColorClass(request.status)">
-                  {{ request.status ? request.status.caption : 'N/A' }}
-                </span>
-              </td>
-              <td>{{ request.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
-              <td>{{ request.updatedAt | date:'dd/MM/yyyy HH:mm' }}</td>
-              <td>
-                <div class="action-buttons">
-                  <button class="btn btn-info btn-sm" 
-                          (click)="$event.stopPropagation(); viewRequestDetails(request)">
-                    פרטים
-                  </button>
+          <tr (click)="viewRequestDetails(request)" class="table-row">
+            <td><strong>{{ request.requestNumber }}</strong></td>
+            <td>
+              <div><strong>{{ request.customer ? request.customer.name : 'N/A' }}</strong></div>
+              <div class="customer-phone">{{ request.customer ? request.customer.mobile : 'N/A' }}</div>
+            </td>
+            <td>{{ request.requestType ? request.requestType.caption : 'N/A' }}</td>
+            <td>
+              <span class="status-badge" [ngClass]="getStatusColorClass(request.status)">
+                {{ request.status ? request.status.caption : 'N/A' }}
+              </span>
+            </td>
+            <td>{{ request.currentStageDesc }}</td>
+            <td>{{ request.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
+            <td>{{ request.updatedAt | date:'dd/MM/yyyy HH:mm' }}</td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn btn-info btn-sm" (click)="$event.stopPropagation(); viewRequestDetails(request)">
+                  פרטים
+                </button>
                 <!-- {{request.status.id}}{{request.status.id}} {{RequestStatus.APPOINTMENT_COMPLETED.id}} {{request.status === RequestStatus.APPOINTMENT_COMPLETED}} -->
-                  @if(request.status.id === RequestStatus.NEW.id || request.status.id === RequestStatus.APPOINTMENT_COMPLETED.id) {
-                    <button class="btn btn-success btn-sm"
-                            (click)="$event.stopPropagation(); assignRequest(request)">
-                      שיוך
-                    </button>
-                  }
-                  
-                  <button class="btn btn-warning btn-sm" 
-                          (click)="$event.stopPropagation(); selectRequestStatus(request)">
-                    עדכון סטטוס
-                  </button>
-                  
-                  <button class="btn btn-secondary btn-sm" *ngIf="request.status.id === RequestStatus.APPOINTMENT_SCHEDULED.id"
-                          (click)="$event.stopPropagation(); updateRequestAfterMeeting(request)">
-                    פגישה הושלמה
-                  </button>
-                </div>
-              </td>
-            </tr>
+                @if(request.status.id === RequestStatus.NEW.id || request.status.id ===
+                RequestStatus.APPOINTMENT_COMPLETED.id) {
+                <button class="btn btn-success btn-sm" (click)="$event.stopPropagation(); assignRequest(request)">
+                  שיוך
+                </button>
+                }
+
+                <button class="btn btn-warning btn-sm" (click)="$event.stopPropagation(); selectRequestStatus(request)">
+                  עדכון סטטוס
+                </button>
+
+                <button class="btn btn-secondary btn-sm"
+                  *ngIf="request.status.id === RequestStatus.APPOINTMENT_SCHEDULED.id"
+                  (click)="$event.stopPropagation(); updateRequestAfterMeeting(request)">
+                  פגישה הושלמה
+                </button>
+
+                <button class="btn btn-secondary btn-sm"
+                  *ngIf="request.status.id === RequestStatus.WAITING_FOR_APPROVAL.id"
+                  (click)="$event.stopPropagation(); updateRequestFinished(request)">
+                  סגירת בקשה כהושלמה
+                </button>
+              </div>
+            </td>
+          </tr>
           }
 
           <!-- Empty state -->
@@ -193,24 +200,21 @@
       <!-- Pagination -->
       <div class="pagination-container">
         <div class="pagination-info">
-          מציג {{ ((currentPage - 1) * pageSize) + 1 }} עד {{ Math.min(currentPage * pageSize, total) }} מתוך {{ total }} תוצאות
+          מציג {{ ((currentPage - 1) * pageSize) + 1 }} עד {{ Math.min(currentPage * pageSize, total) }} מתוך {{ total
+          }} תוצאות
         </div>
         <div class="pagination">
           <button class="page-btn" [disabled]="currentPage === 1" (click)="onPageChange(currentPage - 1)">
             <i class="fas fa-chevron-right"></i>
           </button>
-          
+
           <ng-container *ngFor="let page of getPageNumbers()">
-            <button class="page-btn" 
-                    [class.active]="page === currentPage"
-                    (click)="onPageChange(page)">
+            <button class="page-btn" [class.active]="page === currentPage" (click)="onPageChange(page)">
               {{ page }}
             </button>
           </ng-container>
-          
-          <button class="page-btn" 
-                  [disabled]="currentPage * pageSize >= total" 
-                  (click)="onPageChange(currentPage + 1)">
+
+          <button class="page-btn" [disabled]="currentPage * pageSize >= total" (click)="onPageChange(currentPage + 1)">
             <i class="fas fa-chevron-left"></i>
           </button>
         </div>

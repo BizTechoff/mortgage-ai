@@ -10,11 +10,13 @@ import { DocumentType, DocumentTypeLabels } from '../../../../shared/enum/docume
 import { RequestStatus, RequestStatusLabels } from '../../../../shared/enum/request-status.enum';
 import { RequestType, RequestTypeLabels } from '../../../../shared/enum/request-type.enum';
 import { Roles } from '../../../../shared/enum/roles';
+import { DocumentItem } from '../../../../shared/type/document.type';
 import { SignInController } from '../../../auth/SignInController';
 import { BusyService } from '../../../common-ui-elements';
 import { fixPhoneInput } from '../../../common/fields/PhoneField';
 import { UIToolsService } from '../../../common/UIToolsService';
-import { CalendarService } from '../../../service/callendar.service';
+import { AppointmentService } from '../../../service/appointment.service';
+import { DocumentService } from '../../../service/document.service';
 import { RequestService } from '../../../service/request.service';
 
 // Custom currency validator
@@ -42,15 +44,16 @@ export class ClientComponent implements OnInit {
   // Navigation and UI state
   currentRoute = '/dashboard';
   isAuthenticated = false;
+  isLoadedOnce = false
 
   // Web form state
   showWebForm = false;
-  requestType = RequestType.new;
+  requestType = RequestType.none;
   verificationStep = false;
   verificationCode = '';
   mortgageForm: FormGroup;
   currentStep = 1;
-  totalSteps = 4;
+  totalSteps = 5;
   formProgress = 0;
   submitted = false;
 
@@ -81,6 +84,7 @@ export class ClientComponent implements OnInit {
   mobile: string | null = null;
   name: string | null = null;
   customerId = '';
+  cameFromWappLink = false
 
   // Requests data
   requests: MortgageRequest[] = [];
@@ -88,7 +92,7 @@ export class ClientComponent implements OnInit {
   activeRequestId: string | null = null;
 
   // Documents data
-  documents: Document[] = [];
+  documents = new Map<string /*DocumentType.id*/, DocumentItem[]>()
   missingDocuments: DocumentType[] = [];
 
   // Appointments data
@@ -115,58 +119,60 @@ export class ClientComponent implements OnInit {
     private ui: UIToolsService,
     private mortgageService: RequestService,
     // private documentService: DocumentService,
-    private calendarService: CalendarService,
+    private appointmentService: AppointmentService,
     private fb: FormBuilder,
-    private busy: BusyService
+    private busy: BusyService,
+    private documentService: DocumentService
   ) {
     // Initialize mortgage form with currency validators, updated to match HTML
     this.mortgageForm = this.fb.group({
       // Step 1: פרטים אישיים ודמוגרפיים
       fullName: ['', Validators.required],
       mobile: ['', [Validators.required]],
-      email: [''], // [cite: 21, 24]
-      idNumber: ['', [Validators.required, Validators.pattern(/^\d{9}$/)]],
+      email: ['', Validators.required], // [cite: 21, 24]
+      // idNumber: ['', [Validators.required, Validators.pattern(/^\d{9}$/)]],
       address: ['', Validators.required],
-      maritalStatus: [''], // [cite: 21, 25]
-      childrenDetails: [''], // [cite: 21, 32]
-      husbandAge: [''], // [cite: 21, 49]
-      wifeAge: [''], // [cite: 21, 50]
+      maritalStatus: ['', Validators.required], // [cite: 21, 25]
+      childrenDetails: ['', Validators.required], // [cite: 21, 32]
+      husbandAge: ['', Validators.required], // [cite: 21, 49]
+      wifeAge: ['', Validators.required], // [cite: 21, 50]
 
       // Step 2: פרטים פיננסיים ותעסוקתיים
       monthlyIncome: ['', [Validators.required, currencyValidator]], // [cite: 21, 13] (Income for family)
-      partnerIncome: ['', currencyValidator],
-      employmentType: [''], // [cite: 21, 41] (Husband's occupation)
-      wifeEmploymentType: [''], // [cite: 21, 45] (Wife's occupation)
-      currentBank: [''], // [cite: 21, 54]
-      paymentReturns: [''], // [cite: 21, 55]
+      partnerIncome: ['', [currencyValidator, Validators.required]],
+      employmentType: ['', Validators.required], // [cite: 21, 41] (Husband's occupation)
+      wifeEmploymentType: ['', Validators.required], // [cite: 21, 45] (Wife's occupation)
+      currentBank: ['', Validators.required], // [cite: 21, 54]
+      paymentReturns: ['', Validators.required], // [cite: 21, 55]
       healthIssues: [''], // [cite: 21, 59]
-      hasLongTermLoans: [''], // [cite: 21, 40]
+      hasLongTermLoans: ['', Validators.required], // [cite: 21, 40]
 
       // Step 3: פרטי הנכס והלוואה
-      propertyCity: [''], // [cite: 1, 4] (for refinance)
+      propertyCity: ['', Validators.required], // [cite: 1, 4] (for refinance)
       propertyValue: ['', [Validators.required, currencyValidator]], // [cite: 1, 5]
-      equityAmount: ['', currencyValidator], // [cite: 21, 38] (for new mortgage)
+      equityAmount: ['', [currencyValidator, Validators.required]], // [cite: 21, 38] (for new mortgage)
       loanAmount: ['', [Validators.required, currencyValidator]], // No direct match, assumed "כמה תוכלו לשלם בחודש?" [cite: 21, 39] or existing loan amount for refinance [cite: 1, 6]
       loanTerm: ['', Validators.required], // No direct match, inferred from common mortgage forms.
-      refinanceReason: [''], // Inferred reason for refinance.
-      remainingMortgageBalance: ['', currencyValidator], // [cite: 1, 6] (for refinance)
-      currentMonthlyMortgagePayment: ['', currencyValidator], // [cite: 1, 7] (for refinance)
-      hasOtherLoans: [''], // [cite: 1, 8] (for refinance)
-      otherLoansAmount: ['', currencyValidator], // [cite: 1, 11] (if hasOtherLoans is yes)
-      otherLoansMonthlyPayment: ['', currencyValidator], // [cite: 1, 12] (if hasOtherLoans is yes)
-      numberOfRooms: [''], // [cite: 21, 53] (for new mortgage)
-      hasAdditionalProperty: [''], // [cite: 21, 33] (for new mortgage)
+      refinanceReason: ['', Validators.required], // Inferred reason for refinance.
+      remainingMortgageBalance: ['', [currencyValidator, Validators.required]], // [cite: 1, 6] (for refinance)
+      currentMonthlyMortgagePayment: ['', [currencyValidator, Validators.required]], // [cite: 1, 7] (for refinance)
+      hasOtherLoans: ['', Validators.required], // [cite: 1, 8] (for refinance)
+      otherLoansAmount: ['', [currencyValidator, Validators.required]], // [cite: 1, 11] (if hasOtherLoans is yes)
+      otherLoansMonthlyPayment: ['', [currencyValidator, Validators.required]], // [cite: 1, 12] (if hasOtherLoans is yes)
+      numberOfRooms: ['', Validators.required], // [cite: 21, 53] (for new mortgage)
+      hasAdditionalProperty: ['', Validators.required], // [cite: 21, 33] (for new mortgage)
 
       // Step 4 (or 5 for refinance): מטרות וקשיים / בחירת פגישה / העלאת מסמכים
-      desiredOutcome: [''], // [cite: 21, 63] (for new mortgage)
-      mainDifficulties: [''], // [cite: 21, 64] (for new mortgage)
-      paymentDifficultyRating: [''], // [cite: 1, 15] (for refinance, 1-10 scale)
-      optimalSituation: [''] // [cite: 1, 17] (for refinance)
+      desiredOutcome: ['', Validators.required], // [cite: 21, 63] (for new mortgage)
+      mainDifficulties: ['', Validators.required], // [cite: 21, 64] (for new mortgage)
+      paymentDifficultyRating: ['', Validators.required], // [cite: 1, 15] (for refinance, 1-10 scale)
+      optimalSituation: ['', Validators.required] // [cite: 1, 17] (for refinance)
     });
   }
   remult = remult;
   RequestType = RequestType;
   RequestStatus = RequestStatus
+  DocumentType = DocumentType
   isCustomer = () => remult.isAllowed(Roles.customer);
 
   @HostListener('window:resize', ['$event'])
@@ -187,6 +193,7 @@ export class ClientComponent implements OnInit {
 
           var found = false
           if (this.mobile) {
+            this.cameFromWappLink = true
             var u = await remult.repo(User).findOne({ where: { mobile: this.mobile! } });
             if (u) {
               this.mobileValidated = !!u.verifyTime;
@@ -217,34 +224,52 @@ export class ClientComponent implements OnInit {
     this.loadClientRequests();
   }
 
-  async openNewRequest(type: RequestType) {
-    this.requestType = type;
-    this.showWebForm = true;
-    this.updateTotalSteps();
+  /**
+   * Load client's mortgage requests
+   */
+  loadClientRequests(): void {
+    if (!this.mobile) return;
+    this.loading.requests = true;
 
-    this.mortgageForm.get('fullName')?.setValue(this.name, { emitEvent: false });
-    this.mortgageForm.get('mobile')?.setValue(this.mobile, { emitEvent: false });
-    this.mortgageForm.get('idNumber')?.setValue('123456789', { emitEvent: false });
-    this.mortgageForm.get('address')?.setValue('מגדיאל הוד השרון', { emitEvent: false });
-    this.mortgageForm.get('monthlyIncome')?.setValue(770, { emitEvent: false });
-
-    // alert(this.activeRequest?.id)
-    // <<< חדש: יצירת טיוטה ראשונית גם בלחיצה על כפתור
-    await this.createInitialDraft();
+    RequestService.getRequests().subscribe(
+      (requests) => {
+        this.requests = requests;
+        if (requests.length) {// Find active request
+          // const activeRequest = this.requests.find(r =>
+          //   !RequestStatus.isCompletedStatus(r.status)
+          // );
+          const activeRequest = this.requests[0]
+          if (activeRequest) {
+            // alert(33)
+            this.setActiveRequest(activeRequest);
+            // this.loading.requests = true;
+          }
+        }
+        else if (this.cameFromWappLink) {
+          // <<< חדש: יצירת טיוטה ראשונית גם בלחיצה על כפתור
+          this.createInitialDraft();
+        }
+        else {
+          this.isLoadedOnce = true
+        }
+      },
+      (error) => {
+        console.error('Error loading client requests:', error);
+        this.loading.requests = false;
+          this.isLoadedOnce = true
+      });
   }
 
   // <<< חדש: מתודה ליצירת טיוטה ראשונית
-  private async createInitialDraft(): Promise<void> {
-    if (this.activeRequest?.id) {
-      console.log('Draft already exists, skipping initial creation.');
-      return; // טיוטה כבר קיימת, אין צורך ליצור חדשה
-    }
-
+  private createInitialDraft() {
     // וודא ששדות חובה מינימליים קיימים לפני יצירת טיוטה
-    this.mortgageForm.get('fullName')?.markAsTouched();
-    this.mortgageForm.get('mobile')?.markAsTouched();
+    // this.mortgageForm.get('fullName')?.markAsTouched();
+    // this.mortgageForm.get('mobile')?.markAsTouched();
 
-    if (this.mortgageForm.get('fullName')?.invalid || this.mortgageForm.get('mobile')?.invalid) {
+    // alert(this.mortgageForm.get('fullName')?.value)
+
+    // if (this.mortgageForm.get('fullName')?.invalid || this.mortgageForm.get('mobile')?.invalid) {
+    if (!this.name || !this.mobile) {
       console.warn('Cannot create initial draft: Full Name or Mobile is invalid.');
       this.ui.info('יש למלא שם מלא ונייד תקין כדי להתחיל את הבקשה.');
       return;
@@ -270,48 +295,158 @@ export class ClientComponent implements OnInit {
       });
   }
 
-  /**
-   * Load client's mortgage requests
-   */
-  loadClientRequests(): void {
-    if (!this.mobile) return;
-    this.loading.requests = true;
 
-    RequestService.getRequests().subscribe(
-      (requests) => {
-        this.requests = requests;
-        // Find active request
-        const activeRequest = this.requests.find(r =>
-          !RequestStatus.isCompletedStatus(r.status)
-        );
-        if (activeRequest) {
-          // alert(33)
-          this.setActiveRequest(activeRequest);
-        }
+  async openExistingRequest(request: MortgageRequest) {
+    console.log('openExistingRequest')
 
-        this.loading.requests = false;
-      },
-      (error) => {
-        console.error('Error loading client requests:', error);
-        this.loading.requests = false;
+    // alert(request?.id)
+    this.requestType = request.requestType;
+    this.showWebForm = true;
+    this.updateTotalSteps();
+  }
+
+  openRequestPage(request: MortgageRequest){
+    this.router.navigate(['/request', request.id], {
+        queryParams: { returnUrl: '/client' }
       });
+  }
+
+  async openNewRequest(type: RequestType) {
+    console.log('openNewRequest')
+
+
+    // this.getAllFields()
+
+    // alert(request?.id)
+    this.requestType = type;
+    this.createInitialDraft();
+    this.showWebForm = true;
+    this.updateTotalSteps();
+
+    // if (!this.mortgageForm.get('fullName')) {
+    //   this.mortgageForm.get('fullName')?.setValue(request ? request.personalDetails?.fullName : this.name, { emitEvent: false });
+    // }
+    // if (!this.mortgageForm.get('mobile')) {
+    //   this.mortgageForm.get('mobile')?.setValue(request ? request.personalDetails?.mobile : this.mobile, { emitEvent: false });
+    // }
   }
 
 
   /**
    * Set active request and load its related data
+   * THIS METHOD IS UPDATED TO LOAD ALL FIELDS FROM NESTED OBJECTS IN THE ENTITY
    */
   setActiveRequest(request: MortgageRequest): void {
     this.activeRequest = request;
-    this.activeRequestId = request.id; // שמור את ה-ID גם כאן
+    this.activeRequestId = request.id;
+
+    // Ensure nested objects exist for safe access
+    const applicantInfo = request.personalDetails || {}; // New category name
+    const demographic = request.demographicDetails || {}; //
+    const keyFinancials = request.keyFinancials || {}; //
+    const employmentFinancials = request.employmentAndOtherFinancials || {}; //
+    const property = request.propertyData || {}; //
+    const loan = request.loanData || {}; //
+    const refinance = request.refinanceDetails || {}; // New category
+    const otherLoans = request.otherLoansDetails || {}; // New category
+    const goals = request.goalsAndDifficulties || {}; // New category
+    const appointment = request.appointmentDetails || { date: undefined!, time: '', location: '', operatorName: '' };
+    // const financialHealth = request.financialHealthIndicators || {};
+
+
+    // Pre-fill the form with existing request data from the nested objects
+    this.mortgageForm.patchValue({
+      // Step 1: Personal and Demographic details (from applicantPersonalInformation and demographicDetails)
+      fullName: applicantInfo.fullName ? applicantInfo.fullName : this.name,
+      mobile: applicantInfo.mobile ? applicantInfo.mobile : this.mobile,
+      email: applicantInfo.email,
+      // idNumber: applicantInfo.idNumber,
+      address: applicantInfo.address,
+      maritalStatus: demographic.maritalStatus,
+      childrenDetails: demographic.childrenDetails,
+      husbandAge: demographic.husbandAge,
+      wifeAge: demographic.wifeAge,
+
+      // Step 2: Financial and Employment details (from keyFinancials and employmentAndOtherFinancials)
+      monthlyIncome: this.formatCurrency(keyFinancials.monthlyIncome),
+      partnerIncome: this.formatCurrency(keyFinancials.partnerIncome),
+      employmentType: employmentFinancials.employmentType,
+      wifeEmploymentType: employmentFinancials.wifeEmploymentType,
+      currentBank: keyFinancials.currentBank,
+      paymentReturns: employmentFinancials.paymentReturns,
+      healthIssues: employmentFinancials.healthIssues,
+      hasLongTermLoans: employmentFinancials.hasLongTermLoans,
+
+      // Step 3: Property and Loan details
+      propertyCity: property.propertyCity,
+      propertyValue: this.formatCurrency(property.propertyValue),
+      equityAmount: this.formatCurrency(property.equityAmount),
+      loanAmount: this.formatCurrency(loan.loanAmount), // Maps from loan.requestedAmount
+      loanTerm: loan.loanTerm, // Maps from loan.loanPeriod
+      refinanceReason: refinance.refinanceReason,
+      remainingMortgageBalance: this.formatCurrency(refinance.remainingMortgageBalance),
+      currentMonthlyMortgagePayment: this.formatCurrency(refinance.currentMonthlyMortgagePayment), // Maps from refinanceDetails.currentMonthlyMortgagePayment
+      hasOtherLoans: refinance.hasOtherLoans,
+      otherLoansAmount: this.formatCurrency(otherLoans.otherLoansAmount),
+      otherLoansMonthlyPayment: this.formatCurrency(otherLoans.otherLoansMonthlyPayment),
+      numberOfRooms: property.numberOfRooms,
+      hasAdditionalProperty: property.hasAdditionalProperty,
+
+      // Step 4/5: Goals and Difficulties / Optimal Situation (from applicationGoalsAndChallenges and financialHealthIndicators)
+      desiredOutcome: goals.desiredOutcome,
+      mainDifficulties: goals.mainDifficulties,
+      paymentDifficultyRating: goals.paymentDifficultyRating,
+      optimalSituation: goals.optimalSituation
+    });
+
+    // Update selectedAppointment if an appointment exists
+    if (appointment && appointment.date && appointment.time) {
+      const selectedSlot = this.availableSlots.findIndex(slot =>
+        this.isSameAppointmentSlot(slot, appointment)
+      );
+      if (selectedSlot !== -1) {
+        this.selectedAppointment = selectedSlot;
+      }
+    }
+
     this.loadRequestDocuments(request.id);
     this.loadRequestAppointment(request.id);
     this.checkMissingDocuments(request.id);
 
+    // If the request is not yet "customer completed", open the form to continue
     if (RequestStatus.isProccessingStatus(request.status)) {
-      this.openNewRequest(request.requestType);
+      this.openExistingRequest(request);
     }
+
+    this.isLoadedOnce = true
   }
+
+  private isSameAppointmentSlot(slot: any, appointment: any): boolean {
+    // וודא ששני האובייקטים הם מופעי Date או ניתנים להמרה ל-Date
+    const slotDate = slot.date instanceof Date ? slot.date : new Date(slot.date);
+    const appointmentDate = appointment.date instanceof Date ? appointment.date : new Date(appointment.date);
+
+    return slotDate.getFullYear() === appointmentDate.getFullYear() &&
+      slotDate.getMonth() === appointmentDate.getMonth() &&
+      slotDate.getDate() === appointmentDate.getDate() &&
+      slot.time === appointment.time;
+  }
+
+
+  // /**
+  //  * Set active request and load its related data
+  //  */
+  // setActiveRequest(request: MortgageRequest): void {
+  //   this.activeRequest = request;
+  //   this.activeRequestId = request.id; // שמור את ה-ID גם כאן
+  //   this.loadRequestDocuments(request.id);
+  //   this.loadRequestAppointment(request.id);
+  //   this.checkMissingDocuments(request.id);
+  //   // alert(request.requestType.id)
+  //   if (RequestStatus.isProccessingStatus(request.status)) {
+  //     this.openNewRequest(request.requestType, request);
+  //   }
+  // }
 
   viewActiveRequest() {
     // Implement logic to display the full details of activeRequest
@@ -415,11 +550,20 @@ export class ClientComponent implements OnInit {
   updateTotalSteps(): void {
     // NEW MORTGAGE: 4 steps (Personal → Financial → Property → Goals & Appointment)
     // REFINANCE: 5 steps (Personal → Financial → Property → Documents & Goals → Appointment)
-    this.totalSteps = this.requestType === RequestType.new ? 4 : 5;
+    this.totalSteps = 5// this.requestType.id === RequestType.new.id ? 4 : 5;
 
     console.log(`Updated total steps: ${this.totalSteps} for request type: ${this.requestType}`);
     this.updateFormProgress();
+
+
+    this.getAllFields()
   }
+
+  // פונקציית עזר לקבלת הקבצים שהועלו עבור סוג מסוים
+  getUploadedDocuments(docType: DocumentType): DocumentItem[] {
+    return this.activeRequest?.documents?.filter(doc => doc.type?.id === docType.id) || [];
+  }
+
 
   /**
    * Load documents for a specific request
@@ -427,16 +571,22 @@ export class ClientComponent implements OnInit {
   loadRequestDocuments(requestId: string): void {
     this.loading.documents = true;
 
-    // this.documentService.getDocumentsByRequestId(requestId).subscribe(
-    //   (documents) => {
-    //     this.documents = documents;
-    //     this.loading.documents = false;
-    //   },
-    //   (error) => {
-    //     console.error('Error loading request documents:', error);
-    //     this.loading.documents = false;
-    //   }
-    // );
+    this.documents.clear()
+    this.documentService.getDocumentsByRequestId(requestId).subscribe(
+      (documents) => {
+        for (const doc of documents) {
+          if (!this.documents.has(doc.type!.id)) {
+            this.documents.set(doc.type!.id, [] as DocumentItem[])
+          }
+          this.documents.get(doc.type!.id)!.push(doc)
+        }
+        this.loading.documents = false;
+      },
+      (error) => {
+        console.error('Error loading request documents:', error);
+        this.loading.documents = false;
+      }
+    );
   }
 
   /**
@@ -445,19 +595,19 @@ export class ClientComponent implements OnInit {
   loadRequestAppointment(requestId: string): void {
     this.loading.appointments = true;
 
-    // this.calendarService.getAppointmentsByRequestId(requestId).subscribe(
-    //   (appointments) => {
-    //     const now = new Date();
-    //     this.upcomingAppointment = appointments
-    //       .find(a => new Date(a.start.dateTime) > now);
+    this.appointmentService.getAppointmentsByRequestId(requestId).subscribe(
+      (appointments) => {
+        const now = new Date();
+        this.upcomingAppointment = appointments
+          .find(a => new Date(a.date) > now);
 
-    //     this.loading.appointments = false;
-    //   },
-    //   (error) => {
-    //     console.error('Error loading request appointments:', error);
-    //     this.loading.appointments = false;
-    //   }
-    // );
+        this.loading.appointments = false;
+      },
+      (error) => {
+        console.error('Error loading request appointments:', error);
+        this.loading.appointments = false;
+      }
+    );
   }
 
   /**
@@ -523,7 +673,7 @@ export class ClientComponent implements OnInit {
    * Validate current step
    */
   private validateCurrentStep(): boolean {
-    const currentStepFields = this.getCurrentStepFields();
+    const currentStepFields = this.getCurrentStepFields(this.currentStep);
     let isValid = true;
 
     // Mark all fields in current step as touched to show errors
@@ -545,8 +695,7 @@ export class ClientComponent implements OnInit {
     });
 
     // Specific validation for appointment selection at the final step
-    const isAppointmentStep = (this.requestType === RequestType.new && this.currentStep === 4) ||
-      (this.requestType === RequestType.renew && this.currentStep === 5);
+    const isAppointmentStep = this.currentStep === 5;
     if (isAppointmentStep) {
       if (this.selectedAppointment < 0) {
         this.appointmentError = true;
@@ -559,31 +708,43 @@ export class ClientComponent implements OnInit {
     return isValid;
   }
 
+  private getAllFields() {
+    // this.mortgageForm.controls
+
+    const result = [] as string[]
+    for (let step = 1; step <= 5; ++step) {
+      const fields = this.getCurrentStepFields(step)
+      console.log(`${this.requestType.id}.step.${step}: ${JSON.stringify(fields)}`)
+      result.push(...fields)
+      // console.log(`getAllFields: ${JSON.stringify(result)}`)
+    }
+    return result
+  }
+
   /**
    * Get form fields for current step
    */
-  private getCurrentStepFields(): string[] {
+  private getCurrentStepFields(step = 0): string[] {
     const result = [] as string[]
-    switch (this.currentStep) {
+    switch (step) {
       case 1: // Personal and Demographic
-        result.push('fullName', 'mobile', 'idNumber', 'address')
-        if (this.requestType === RequestType.new) {
+        result.push('fullName', 'mobile', /*'idNumber',*/ 'address')
+        if (this.requestType.id === RequestType.new.id) {
           result.push('email', 'maritalStatus', 'childrenDetails', 'husbandAge', 'wifeAge');
         }
         break
       case 2: // Financial and Employment
         result.push('monthlyIncome')
-        if (this.requestType === RequestType.new) {
+        if (this.requestType.id === RequestType.new.id) {
           result.push('partnerIncome', 'employmentType', 'wifeEmploymentType', 'currentBank', 'paymentReturns', 'healthIssues', 'hasLongTermLoans');
-        } else { // Refinance
-          result.push('currentBank');
         }
         break
       case 3: // Property and Loan
         result.push('propertyValue', 'loanAmount', 'loanTerm')
-        if (this.requestType === RequestType.new) {
+        if (this.requestType.id === RequestType.new.id) {
           result.push('equityAmount', 'numberOfRooms', 'hasAdditionalProperty');
-        } else { // Refinance
+        }
+        else if (this.requestType.id === RequestType.renew.id) { // Refinance
           result.push('propertyCity', 'refinanceReason', 'remainingMortgageBalance', 'currentMonthlyMortgagePayment', 'hasOtherLoans');
           // Conditional fields for 'hasOtherLoans' will be validated if 'yes'
           if (this.mortgageForm.get('hasOtherLoans')?.value === 'yes') {
@@ -592,9 +753,9 @@ export class ClientComponent implements OnInit {
         }
         break
       case 4: // New: Goals & Appointment; Renew: Documents & Goals
-        if (this.requestType === RequestType.new) {
+        if (this.requestType.id === RequestType.new.id) {
           result.push('desiredOutcome', 'mainDifficulties'); // Appointment is not a form control
-        } else { // RequestType.renew (Documents & Goals step)
+        } else if (this.requestType.id === RequestType.renew.id) { // RequestType.renew (Documents & Goals step)
           result.push('paymentDifficultyRating', 'optimalSituation'); // Document upload is not a form control
         }
         break
@@ -605,7 +766,7 @@ export class ClientComponent implements OnInit {
         // return [];
         break
     }
-    console.log('getCurrentStepFields.result: ' + result)
+    // console.log('getCurrentStepFields.result: ' + result)
     return result
   }
 
@@ -629,10 +790,12 @@ export class ClientComponent implements OnInit {
       return;
     }
 
-    const currentStepFields = this.getCurrentStepFields();
+    const currentStepFields =
+      this.getAllFields()
+    // this.getCurrentStepFields(this.currentStep);
     const partialData: Partial<MortgageRequest> = {};
-    console.table('currentStepFields: ', currentStepFields)
-    console.log('partialData.empty: ', partialData)
+    // console.table('currentStepFields: ', currentStepFields)
+    // console.log('partialData.empty: ', partialData)
     // Collect data for current step only
     currentStepFields.forEach(fieldName => {
       const control = this.mortgageForm.get(fieldName);
@@ -646,7 +809,7 @@ export class ClientComponent implements OnInit {
       }
     });
 
-    console.log('CLIENT: partialData.filled: ', partialData)
+    // console.log('CLIENT: partialData.filled: ', partialData)
     RequestService.update(this.activeRequestId, partialData).subscribe(
       (response) => {
         if (response.success && response.data) {
@@ -677,6 +840,62 @@ export class ClientComponent implements OnInit {
       return;
     }
 
+
+    const relevent = this.getAllFields()
+    Object.keys(this.mortgageForm.controls).forEach(key => {
+      const control = this.mortgageForm.get(key);
+      if (relevent.includes(key)) {
+        control?.enable()
+      }
+      else { control?.disable() }
+    })
+
+
+    // Validate all fields of the form for final submission
+    if (this.mortgageForm.invalid) {
+      this.mortgageForm.markAllAsTouched(); // Mark all fields to show errors
+      this.scrollToFirstError();
+
+      // --- הוספת לוגיקה להצגת תיאור השגיאות ---
+      let errorMessages: string[] = [];
+      Object.keys(this.mortgageForm.controls).forEach(key => {
+        const control = this.mortgageForm.get(key);
+        if (control && control.invalid && control.touched && control.errors) {
+          // הוסף את שם השדה והשגיאות הספציפיות
+          let fieldName = key; // שם השדה בטופס
+          // ניתן להוסיף כאן לוגיקה לתרגום fieldName לשם ידידותי יותר למשתמש (לדוגמה, "fullName" ל-"שם מלא")
+          // console.log(this.mortgageForm.value, JSON.stringify(this.mortgageForm.value))
+          for (const errorKey in control.errors) {
+            // console.log(errorKey, JSON.stringify(control.errors))
+            if (control.errors.hasOwnProperty(errorKey)) {
+              switch (errorKey) {
+                case 'required':
+                  errorMessages.push(`${fieldName}: שדה חובה`);
+                  break;
+                case 'pattern':
+                  errorMessages.push(`${fieldName}: פורמט לא תקין`);
+                  break;
+                case 'email':
+                  errorMessages.push(`${fieldName}: כתובת אימייל לא תקינה`);
+                  break;
+                case 'invalidCurrency':
+                  errorMessages.push(`${fieldName}: סכום לא תקין`);
+                  break;
+                // הוסף מקרים נוספים עבור סוגי ולידטורים אחרים שיש לך
+                default:
+                  errorMessages.push(`${fieldName}: שגיאה: ${errorKey}`);
+                  break;
+              }
+            }
+          }
+        }
+      });// הצג את כל הודעות השגיאה המפורטות
+      if (errorMessages.length > 0) {
+        this.ui.error('אנא מלא את כל השדות הנדרשים בטופס:\n' + errorMessages.join('\n'));
+        // console.log(JSON.stringify(this.mortgageForm))
+      }
+    }
+
     // Validate all fields of the form for final submission
     if (this.mortgageForm.invalid) {
       this.mortgageForm.markAllAsTouched(); // Mark all fields to show errors
@@ -686,8 +905,7 @@ export class ClientComponent implements OnInit {
     }
 
     // Validate appointment selection at the final step
-    const isAppointmentStep = (this.requestType === RequestType.new && this.currentStep === 4) ||
-      (this.requestType === RequestType.renew && this.currentStep === 5);
+    const isAppointmentStep = this.currentStep === 5;
     if (isAppointmentStep && this.selectedAppointment < 0) {
       this.appointmentError = true;
       this.scrollToFirstError();
@@ -714,14 +932,14 @@ export class ClientComponent implements OnInit {
       otherLoansMonthlyPayment: this.getRawCurrencyValue(formData.otherLoansMonthlyPayment),
       requestType: this.requestType,
       customerId: this.customerId,
-      appointmentSlot: (isAppointmentStep && this.selectedAppointment >= 0) ? this.availableSlots[this.selectedAppointment] : undefined
+      appointmentDetails: (isAppointmentStep && this.selectedAppointment >= 0) ? this.availableSlots[this.selectedAppointment] : undefined
     };
 
     // Determine the final status based on the request type
     let finalStatus = RequestStatus.APPOINTMENT_SCHEDULED
 
     // let finalStatus: RequestStatus;
-    // if (this.requestType === RequestType.new) {
+    // if (this.requestType.id === RequestType.new.id) {
     //   finalStatus = RequestStatus.WAITING_FOR_APPOINTMENT; // New Mortgage goes to appointment
     // } else { // RequestType.renew
     //   finalStatus = RequestStatus.WAITING_FOR_DOCUMENTS; // Refinance goes to documents upload
@@ -777,68 +995,93 @@ export class ClientComponent implements OnInit {
    * Handle file selection for document upload
    */
   onFileSelected(event: any, documentType: string): void {
-    const file = event.target.files[0];
-    if (!file) return;
+
+    const files = event.target.files;
+    if (!files || !files.length) return;
 
     // Validate file size (max 10MB)
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    if (file.size > maxSize) {
-      alert('הקובץ גדול מדי. הגודל המקסימלי הוא 10MB');
-      return;
-    }
-
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
-    if (!allowedTypes.includes(file.type)) {
-      alert('סוג קובץ לא נתמך. אנא העלה קובץ JPG, PNG או PDF');
-      return;
+    for (const f of files) {
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (f.size > maxSize) {
+        alert('הקובץ גדול מדי. הגודל המקסימלי הוא 10MB');
+        return;
+      }
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+      if (!allowedTypes.includes(f.type)) {
+        alert('סוג קובץ לא נתמך. אנא העלה קובץ JPG, PNG או PDF');
+        return;
+      }
     }
 
     // Start upload progress simulation
-    this.uploadProgress[documentType] = 0;
+    // this.uploadProgress[documentType] = 0;
 
-    const interval = setInterval(() => {
-      this.uploadProgress[documentType] += Math.random() * 20;
-      if (this.uploadProgress[documentType] >= 100) {
-        this.uploadProgress[documentType] = 100;
-        clearInterval(interval);
+    // const interval = setInterval(() => {
+    //   this.uploadProgress[documentType] += Math.random() * 20;
+    //   if (this.uploadProgress[documentType] >= 100) {
+    //     this.uploadProgress[documentType] = 100;
+    //     clearInterval(interval);
 
-        setTimeout(() => {
-          this.uploadedFiles[documentType] = file.name;
-          delete this.uploadProgress[documentType];
-        }, 500);
-      }
-    }, 200);
+    //     setTimeout(() => {
+    //       this.uploadedFiles[documentType] = file.name;
+    //       delete this.uploadProgress[documentType];
+    //     }, 500);
+    //   }
+    // }, 200);
 
     // In real implementation, upload the file
     if (this.activeRequest) {
-      this.uploadDocument(file, DocumentType.fromString(documentType));
+      this.uploadDocuments(files, DocumentType.fromString(documentType));
     }
+  }
+
+  // 1. הגדרת הפונקציה ליצירת FileList מקובץ/קובצי File
+  /**
+   * Creates a FileList object from an array of File objects.
+   * This is the most reliable way to programmatically generate a FileList.
+   *
+   * @param files An array of File objects.
+   * @returns A FileList object containing the provided files.
+   */
+  createFileListBox(files: File[]): FileList {
+    const dataTransfer = new DataTransfer();
+    files.forEach(file => {
+      dataTransfer.items.add(file);
+    });
+    return dataTransfer.files;
   }
 
   /**
    * Upload document for active request
    */
-  uploadDocument(file: File, documentType: DocumentType, description?: string): void {
-    if (!this.activeRequest || !this.customerId) return;
+  uploadDocuments(files: FileList, documentType: DocumentType, description?: string): void {
+    if (!this.activeRequest) return;
+    // if (!this.activeRequest || !this.customerId) return;
 
-    // this.documentService.uploadDocument(
-    //   file,
-    //   this.activeRequest.id,
-    //   this.clientId,
-    //   documentType,
-    //   description
-    // ).subscribe(
-    //   (event) => {
-    //     if (event.type === 4) { // HttpEventType.Response
-    //       this.loadRequestDocuments(this.activeRequest!.id);
-    //       this.checkMissingDocuments(this.activeRequest!.id);
-    //     }
-    //   },
-    //   (error) => {
-    //     console.error('Error uploading document:', error);
-    //   }
-    // );
+    // const list: FileList = this.createFileListBox([file])
+
+    this.documentService.uploadDocuments(
+      this.activeRequest.id,
+      files,
+      documentType.id
+    ).subscribe(
+      (success) => {
+        if (success) { // HttpEventType.Response
+          this.loadRequestDocuments(this.activeRequest!.id);
+          this.checkMissingDocuments(this.activeRequest!.id);
+
+          this.ui.info('קובץ הועלה בהצלחה')
+        }
+        else {
+          this.ui.info('העלאת קובץ נכשלה')
+        }
+      },
+      (error) => {
+        console.error('Error uploading document:', error);
+        this.ui.info('שגיאה בהעלאת קובץ')
+      }
+    );
   }
 
   /**
@@ -847,6 +1090,7 @@ export class ClientComponent implements OnInit {
   selectAppointment(index: number): void {
     this.selectedAppointment = index;
     this.appointmentError = false;
+
   }
 
   /**
@@ -976,7 +1220,7 @@ export class ClientComponent implements OnInit {
       case 1: return 'פרטים אישיים ודמוגרפיים';
       case 2: return 'פרטים פיננסיים ותעסוקתיים';
       case 3: return 'פרטי הנכס והלוואה';
-      case 4: return this.requestType === RequestType.new ? 'מטרות ופגישה' : 'העלאת מסמכים';
+      case 4: return this.requestType.id === RequestType.new.id ? 'מטרות וקשיים' : 'העלאת מסמכים';
       case 5: return 'בחירת מועד פגישה';
       default: return '';
     }

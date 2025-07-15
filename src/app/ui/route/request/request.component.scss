@@ -354,9 +354,11 @@
   }
 }
 .document-list {
-  list-style: none;
+ list-style: none; /* הסר בולטים של רשימה */
   padding: 0;
   margin: 0;
+  overflow-y: auto;
+  max-height: 100px;
   
   .document-item {
     display: flex;
@@ -374,10 +376,15 @@
     i {
       font-size: 1.125rem;
       color: #64748b;
+        flex-shrink: 0; // Prevent icon from shrinking
     }
 
     span {
       flex-grow: 1;
+      white-space: nowrap; /* <-- Prevents name from wrapping to next line */
+        overflow: hidden; /* <-- Hides overflowing text */
+        text-overflow: ellipsis; /* <-- Adds "..." for overflowing text */
+        line-height: 1.5; /* Ensure consistent line height */
     }
 
     .btn { /* Reused small button */
@@ -386,6 +393,11 @@
       padding: 0.3rem 0.6rem;
       font-size: 0.75rem;
       border-radius: 5px;
+      flex-shrink: 0; /* Prevent button from shrinking */
+        display: inline-flex; // Ensure icon and text are aligned within button
+        align-items: center;
+        gap: 5px; // Space between icon and text in button (if button has an icon)
+        
       &:hover {
         opacity: 0.9;
       }

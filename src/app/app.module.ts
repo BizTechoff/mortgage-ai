@@ -43,6 +43,7 @@ import { OperatorComponent } from './ui/route/operator/operator.component'
 import { UsersComponent } from './ui/route/users/users.component'
 import { RequestComponent } from './ui/route/request/request.component'
 import { CustomerListComponent } from './ui/route/customer-list/customer-list.component'
+import { DocumentService } from './service/document.service'
 
 @NgModule({
   declarations: [
@@ -99,6 +100,7 @@ import { CustomerListComponent } from './ui/route/customer-list/customer-list.co
     AppointmentService,
     OperatorService,
     UserService,
+    DocumentService,
     { provide: APP_INITIALIZER, useFactory: initApp, multi: true },
   ],
   bootstrap: [AppComponent],

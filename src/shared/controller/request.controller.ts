@@ -7,11 +7,37 @@ import { User } from "../entity/user.entity";
 import { RequestStatus } from "../enum/request-status.enum"; // <<< ודא ייבוא של RequestStatus
 import { RequestType } from "../enum/request-type.enum"; // <<< ודא ייבוא של RequestType
 import { Roles } from "../enum/roles";
+import { ApiResponse } from "../type/api.type";
+import { DocumentItem } from "../type/document.type";
 import { AssignOperatorRequest, AssignOperatorResponse, CreateRequestResponse, GetRequestsResponse, UpdateRequestResponse, UpdateStageProgressPayload, UpdateStageProgressResponse } from "../type/request.type";
 
 
 @Controller('request')
 export class RequestController extends ControllerBase {
+
+    // 1. מתודת CREATE - תשמש ליצירה ראשונית של טיוטה בלבד
+    @BackendMethod({ allowed: true })
+    static async updateDocument(requestId: string, docs: DocumentItem[]): Promise<ApiResponse> {
+        const result = {} as ApiResponse
+        if (!requestId) {
+            result.error!.code = `404`
+            result.error!.message = `Missing requestId`
+            return result
+        }
+        const request = await remult.repo(MortgageRequest).findId(requestId)
+        if (!request) {
+            result.error!.code = `404`
+            result.error!.message = `Found NO request for requestId: ${requestId}`
+            return result
+        }
+        if (!request.documents) {
+            request.documents = [] as DocumentItem[]
+        }
+        request.documents.push(...docs)
+        result.data = await request.save()
+        result.success = true
+        return result
+    }
 
     // 1. מתודת CREATE - תשמש ליצירה ראשונית של טיוטה בלבד
     @BackendMethod({ allowed: true })
@@ -89,7 +115,9 @@ export class RequestController extends ControllerBase {
 
             // עדכון השדות - השתמש ב-Object.assign כדי לעדכן את כל השדות שנשלחו ב-data
             // זה יעדכן את כל השדות ששמותיהם זהים ב-data וב-existingRequest
-            Object.assign(existingRequest, data);
+
+            console.log(`SEND: { keyFinancials: ${JSON.stringify(data.keyFinancials)} }`)
+            RequestController.assignValuesToRequest(existingRequest, data)
             existingRequest.updatedAt = new Date(); // עדכן את תאריך העדכון
 
             // אם נשלח סטטוס חדש, עדכן אותו. זה ישמש לשינוי סטטוס מטיוטה לסטטוס סופי.
@@ -110,6 +138,210 @@ export class RequestController extends ControllerBase {
 
         return result;
     }
+
+    static assignValuesToRequest(request: MortgageRequest, values: Partial<MortgageRequest>) {
+        console.log(`RECEIVED: { full data from client: ${JSON.stringify(values)} }`);
+
+        // --- 1. אתחול אובייקטים מקוננים ב-request אם אינם קיימים ---
+        // (שימוש ב-?? {} מבטיח שאם האובייקט הוא null/undefined, הוא יאותחל כאובייקט ריק)
+        request.personalDetails = request.personalDetails ?? {};
+        request.demographicDetails = request.demographicDetails ?? {};
+        request.keyFinancials = request.keyFinancials ?? { currentBank: '', monthlyIncome: 0, partnerIncome: 0 }; // ודא שאתחול זה מתבצע נכון אם השדות הללו חובה בישות
+        request.employmentAndOtherFinancials = request.employmentAndOtherFinancials ?? {};
+        request.propertyData = request.propertyData ?? {};
+        request.loanData = request.loanData ?? {};
+        request.refinanceDetails = request.refinanceDetails ?? {};
+        request.otherLoansDetails = request.otherLoansDetails ?? {};
+        request.goalsAndDifficulties = request.goalsAndDifficulties ?? {};
+
+        // --- 2. מיפוי ועדכון השדות מה-`values` (השטוחים מהטופס) לאובייקטים המקוננים הנכונים ---
+
+        // פרטים אישיים
+        Object.assign(request.personalDetails, {
+            fullName: (values as any).fullName, // העברה מפורשת של השדות השטוחים מה-values
+            mobile: (values as any).mobile,
+            email: (values as any).email,
+            // idNumber: (values as any).idNumber,
+            address: (values as any).address,
+        });
+        console.log(`After personalDetails: ${JSON.stringify(request.personalDetails)}`);
+
+        // מצב משפחתי ודמוגרפי
+        Object.assign(request.demographicDetails, {
+            maritalStatus: (values as any).maritalStatus,
+            childrenDetails: (values as any).childrenDetails,
+            husbandAge: (values as any).husbandAge,
+            wifeAge: (values as any).wifeAge,
+        });
+        console.log(`After demographicDetails: ${JSON.stringify(request.demographicDetails)}`);
+
+        // פרטים פיננסיים מרכזיים (keyFinancials)
+        // הערה: יש לוודא ששמות השדות ב-values תואמים לשמות השדות ב-keyFinancials בישות.
+        // אם monthlyIncome ו-partnerIncome מגיעים שטוחים מ-values, הם יוצבו כאן.
+        Object.assign(request.keyFinancials, {
+            monthlyIncome: (values as any).monthlyIncome,
+            partnerIncome: (values as any).partnerIncome,
+            currentBank: (values as any).currentBank,
+            // ... הוסף כאן שדות נוספים השייכים ל-keyFinancials מהאובייקט השטוח values
+        });
+        console.log(`After keyFinancials: ${JSON.stringify(request.keyFinancials)}`);
+
+        // תעסוקה ופיננסים נוספים (employmentAndOtherFinancials)
+        Object.assign(request.employmentAndOtherFinancials, {
+            employmentType: (values as any).employmentType,
+            wifeEmploymentType: (values as any).wifeEmploymentType,
+            paymentReturns: (values as any).paymentReturns,
+            healthIssues: (values as any).healthIssues,
+            hasLongTermLoans: (values as any).hasLongTermLoans,
+            // ... הוסף כאן שדות נוספים השייכים ל-employmentAndOtherFinancials
+        });
+        console.log(`After employmentAndOtherFinancials: ${JSON.stringify(request.employmentAndOtherFinancials)}`);
+
+        // נתוני נכס (propertyData)
+        Object.assign(request.propertyData, {
+            propertyCity: (values as any).propertyCity,
+            propertyValue: (values as any).propertyValue,
+            numberOfRooms: (values as any).numberOfRooms,
+            hasAdditionalProperty: (values as any).hasAdditionalProperty,
+            equityAmount: (values as any).equityAmount,
+            // ... הוסף כאן שדות נוספים השייכים ל-propertyData
+        });
+        console.log(`After propertyData: ${JSON.stringify(request.propertyData)}`);
+        //  loanData?: {
+        //     requestedAmount?: number; //
+        //     loanPeriod?: number; //
+        //     equityAmount?: number; // הון עצמי הוא חלק מפרטי ההלוואה החדשה
+        //     // שדה רביעי וחמישי אם יש, או להשאיר כך
+        //   };
+        // נתוני הלוואה (loanData)
+        Object.assign(request.loanData, {
+            loanAmount: (values as any).loanAmount,
+            loanTerm: (values as any).loanTerm,
+            // ... הוסף כאן שדות נוספים השייכים ל-loanData
+        });
+        console.log(`After loanData: ${JSON.stringify(request.loanData)}`);
+
+        // פרטי מחזור (refinanceDetails) - אם רלוונטי
+        Object.assign(request.refinanceDetails, {
+            refinanceReason: (values as any).refinanceReason,
+            remainingMortgageBalance: (values as any).remainingMortgageBalance,
+            currentMonthlyMortgagePayment: (values as any).currentMonthlyMortgagePayment,
+            hasOtherLoans: (values as any).hasOtherLoans,
+            // ... הוסף כאן שדות נוספים השייכים ל-refinanceDetails
+        });
+        console.log(`After refinanceDetails: ${JSON.stringify(request.refinanceDetails)}`);
+
+        // פרטי הלוואות אחרות (otherLoansDetails) - אם רלוונטי
+        Object.assign(request.otherLoansDetails, {
+            otherLoansAmount: (values as any).otherLoansAmount,
+            otherLoansMonthlyPayment: (values as any).otherLoansMonthlyPayment,
+            // ... הוסף כאן שדות נוספים השייכים ל-otherLoansDetails
+        });
+        console.log(`After otherLoansDetails: ${JSON.stringify(request.otherLoansDetails)}`);
+
+        // מטרות וקשיים (goalsAndDifficulties)
+        Object.assign(request.goalsAndDifficulties, {
+            desiredOutcome: (values as any).desiredOutcome,
+            mainDifficulties: (values as any).mainDifficulties,
+            paymentDifficultyRating: (values as any).paymentDifficultyRating,
+            optimalSituation: (values as any).optimalSituation,
+        });
+        console.log(`After goalsAndDifficulties: ${JSON.stringify(request.goalsAndDifficulties)}`);
+
+
+        // --- 3. עדכון שדות ברמה העליונה בישות (שאינם חלק מאובייקטים מקוננים) ---
+        // אלה שדות כמו requestType, customerId, status וכו'.
+        // הם יכולים להישלח ב-values ברמה העליונה ולהיות מעודכנים ישירות.
+        if (values.requestType !== undefined) {
+            request.requestType = values.requestType;
+        }
+        if (values.customerId !== undefined) {
+            request.customerId = values.customerId;
+        }
+        if (values.status !== undefined) {
+            request.status = values.status;
+        }
+        // ... כל שדות ברמה העליונה שאתה רוצה לעדכן מה-values
+
+
+        // --- 4. טיפול בשדות מיוחדים (כמו מערכים, או אובייקטים שמגיעים באופן מלא) ---
+        // שים לב: documents ו-appointmentDetails הם שדות מיוחדים.
+        // documents הוא מערך של אובייקטים. אם values.documents מכיל מערך חדש, הוא יחליף את הקיים.
+        // אם אתה רוצה למזג מערכים, זה דורש לוגיקה מורכבת יותר.
+        if (values.documents !== undefined) {
+            request.documents = values.documents; // יחליף את המערך הקיים
+        }
+        console.log(`After documents: ${JSON.stringify(request.documents)}`);
+
+        // appointmentDetails הוא אובייקט. אם values.appointmentDetails הוא אובייקט מלא, הוא יכול להחליף.
+        // אם זה רק עדכון חלקי, נמזג אותו כמו שדות אחרים.
+        if (values.appointmentDetails !== undefined) {
+            request.appointmentDetails = request.appointmentDetails ?? { date: undefined!, time: "" };
+            Object.assign(request.appointmentDetails, values.appointmentDetails);
+        }
+        console.log(`After appointmentDetails: ${JSON.stringify(request.appointmentDetails)}`);
+
+
+        // --- 5. טיפול בסטטוס חדש (newStatus) אם נשלח במפורש ---
+        // פרמטר newStatus מגיע בנפרד במתודת ה-update, לא כחלק מה-data
+        // אז הוא יטופל מחוץ ל-assignValuesToRequest או יועבר כפרמטר נוסף
+        // ויעדכן את request.status.
+    }
+
+    // static assignValuesToRequest(request: MortgageRequest, values: Partial<MortgageRequest>) {
+    //     console.log(`RECEIVED: { keyFinancials: ${JSON.stringify(values)} }`)
+
+
+    //     request.personalDetails = request.personalDetails ?? {}; // Ensure it's an object
+    //     request.demographicDetails = request.demographicDetails ?? {};
+    //     request.keyFinancials = {currentBank:'', monthlyIncome: 0,partnerIncome:0};
+    //     request.employmentAndOtherFinancials = request.employmentAndOtherFinancials ?? {};
+    //     request.propertyData = request.propertyData ?? {};
+    //     request.loanData = request.loanData ?? {};
+    //     request.refinanceDetails = request.refinanceDetails ?? {};
+    //     request.otherLoansDetails = request.otherLoansDetails ?? {};
+    //     request.goalsAndDifficulties = request.goalsAndDifficulties ?? {};
+    //     request.documents = request.documents! ?? {};
+    //     request.appointmentDetails = request.appointmentDetails! ?? {};
+
+
+    //     // console.log(`Before: { personalDetails: ${JSON.stringify(request.personalDetails)} }`)
+    //     Object.assign(request.personalDetails, values.personalDetails);
+    //     console.log(`After: { personalDetails: ${JSON.stringify(request.personalDetails)} }`)
+
+    //     // console.log(`Before: { demographicDetails: ${JSON.stringify(request.demographicDetails)} }`)
+    //     Object.assign(request.demographicDetails!, values.demographicDetails);
+    //     console.log(`After: { demographicDetails: ${JSON.stringify(request.demographicDetails)} }`)
+
+    //     console.log(1,request.keyFinancials,JSON.stringify(request.keyFinancials))
+    //     console.log(2,values,JSON.stringify(values))
+    //     Object.assign(request.keyFinancials, values);
+    //     console.log(`After: { keyFinancials: ${JSON.stringify(request.keyFinancials)} }`)
+
+    //     Object.assign(request.employmentAndOtherFinancials!, values.employmentAndOtherFinancials);
+    //     console.log(`After: { employmentAndOtherFinancials: ${JSON.stringify(request.employmentAndOtherFinancials)} }`)
+
+    //     Object.assign(request.propertyData!, values.propertyData);
+    //     console.log(`After: { propertyData: ${JSON.stringify(request.propertyData)} }`)
+
+    //     Object.assign(request.loanData!, values.loanData);
+    //     console.log(`After: { loanData: ${JSON.stringify(request.loanData)} }`)
+
+    //     Object.assign(request.refinanceDetails!, values.refinanceDetails);
+    //     console.log(`After: { refinanceDetails: ${JSON.stringify(request.refinanceDetails)} }`)
+
+    //     Object.assign(request.otherLoansDetails!, values.otherLoansDetails);
+    //     console.log(`After: { otherLoansDetails: ${JSON.stringify(request.otherLoansDetails)} }`)
+
+    //     Object.assign(request.goalsAndDifficulties!, values.goalsAndDifficulties);
+    //     console.log(`After: { goalsAndDifficulties: ${JSON.stringify(request.goalsAndDifficulties)} }`)
+
+    //     Object.assign(request.documents!, values.documents);
+    //     console.log(`After: { documents: ${JSON.stringify(request.documents)} }`)
+
+    //     Object.assign(request.appointmentDetails!, values.appointmentDetails);
+    //     console.log(`After: { appointmentDetails: ${JSON.stringify(request.appointmentDetails)} }`)
+    // }
 
     // 2. מתודת UPDATE - תשמש לעדכון טיוטה קיימת ולשינוי סטטוס סופי
     // היא מחליפה את updateRequestDetails הקודמת, ועם שם קצר יותר.
@@ -156,13 +388,13 @@ export class RequestController extends ControllerBase {
         if (!ui) return result
         const repo = remult.repo(MortgageRequest)
         if (ui.roles?.includes(Roles.admin) || ui.roles?.includes(Roles.manager)) {
-            result.data.push(...await repo.find({ include: { customer: true } }))
+            result.data.push(...await repo.find({ include: { customer: true }, orderBy: { requestNumber: 'desc' } }))
         }
         else if (ui.roles?.includes(Roles.operator)) {
-            result.data.push(...await repo.find({ where: { assignedOperatorId: ui.id }, include: { customer: true } }))
+            result.data.push(...await repo.find({ where: { assignedOperatorId: ui.id }, include: { customer: true }, orderBy: { requestNumber: 'desc' } }))
         }
         else if (ui.roles?.includes(Roles.customer)) {
-            result.data.push(...await repo.find({ where: { customerId: ui.id }, include: { customer: true } }))
+            result.data.push(...await repo.find({ where: { customerId: ui.id }, include: { customer: true }, orderBy: { requestNumber: 'desc' } }))
         }
         result.success = true
         return result

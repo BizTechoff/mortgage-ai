@@ -6,19 +6,21 @@ export class DocumentType {
   static ID_CARD = new DocumentType('id_card', 'תעודת זהות');
   static SALARY_SLIP = new DocumentType('salary_slip', 'תלוש שכר');
   static BANK_STATEMENT = new DocumentType('bank_statement', 'דף חשבון בנק');
+  static PROPERTY_DOCS = new DocumentType('property_docs', 'מסמכי הנכס (טאבו/חוזה)');
   static PROPERTY_RIGHTS = new DocumentType('property_rights', 'אישור זכויות בנכס');
   static EXISTING_MORTGAGE = new DocumentType('existing_mortgage', 'פרטי משכנתה קיימת');
   static PROPERTY_VALUATION = new DocumentType('property_valuation', 'שומה נכס');
   static INCOME_CONFIRMATION = new DocumentType('income_confirmation', 'אישור הכנסות');
   static TAX_RETURN = new DocumentType('tax_return', 'דוח שנתי לרשויות המס');
   static FINANCIAL_STATEMENT = new DocumentType('financial_statement', 'דוח כספי');
+  static MORTGAGE_STATEMENT = new DocumentType('mortgage_statement', 'דוח יתרות');
   static OTHER = new DocumentType('other', 'אחר');
 
   constructor(
     public id: string,
     public caption: string
   ) { }
-
+  
   static fromString(option: string): DocumentType {
     switch (option) {
       case 'id_card':
@@ -27,6 +29,10 @@ export class DocumentType {
         return DocumentType.SALARY_SLIP;
       case 'bank_statement':
         return DocumentType.BANK_STATEMENT;
+      case 'property_docs':
+        return DocumentType.PROPERTY_DOCS;
+      case 'mortgage_statement':
+        return DocumentType.MORTGAGE_STATEMENT;
       case 'property_rights':
         return DocumentType.PROPERTY_RIGHTS;
       case 'existing_mortgage':
