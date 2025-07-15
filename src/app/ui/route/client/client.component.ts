@@ -16,8 +16,10 @@ import { BusyService } from '../../../common-ui-elements';
 import { fixPhoneInput } from '../../../common/fields/PhoneField';
 import { UIToolsService } from '../../../common/UIToolsService';
 import { AppointmentService } from '../../../service/appointment.service';
+import { CalendarService } from '../../../service/callendar.service';
 import { DocumentService } from '../../../service/document.service';
 import { RequestService } from '../../../service/request.service';
+import { SnpvService } from '../../../service/snpv.service';
 
 // Custom currency validator
 export function currencyValidator(control: AbstractControl): { [key: string]: any } | null {
@@ -122,7 +124,9 @@ export class ClientComponent implements OnInit {
     private appointmentService: AppointmentService,
     private fb: FormBuilder,
     private busy: BusyService,
-    private documentService: DocumentService
+    private documentService: DocumentService,
+    private calendarService: CalendarService,
+    private snpv: SnpvService
   ) {
     // Initialize mortgage form with currency validators, updated to match HTML
     this.mortgageForm = this.fb.group({
@@ -213,8 +217,31 @@ export class ClientComponent implements OnInit {
           this.requestType = RequestType.fromString(params['type'] as string);
           console.log(`ClientComponent.ngOnInit: { mobile: '${this.mobile}', requestType: '${this.requestType.id}' }`);
           await this.setVars();
+          this.fillAvailableSlots()
         })
     });
+  }
+
+  fillAvailableSlots(max = 5) {
+
+    // this.snpv.getCustomers().subscribe(
+    //   (customers) => {
+    //     console.log('customers', JSON.stringify(customers))
+    //   }
+    // )
+
+    this.calendarService.getEvents('').subscribe(
+      (events) => {
+        console.log('events', JSON.stringify(events))
+        if (events?.length) {
+          this.availableSlots.splice(0)
+          for (const e of events) {
+            this.availableSlots.push({ date: new Date(e.start.dateTime), time: e.start.timeZone })
+          }
+        }
+      },
+      (error) => console.error(error)
+    )
   }
 
   async setVars() {
@@ -256,7 +283,7 @@ export class ClientComponent implements OnInit {
       (error) => {
         console.error('Error loading client requests:', error);
         this.loading.requests = false;
-          this.isLoadedOnce = true
+        this.isLoadedOnce = true
       });
   }
 
@@ -305,10 +332,10 @@ export class ClientComponent implements OnInit {
     this.updateTotalSteps();
   }
 
-  openRequestPage(request: MortgageRequest){
+  openRequestPage(request: MortgageRequest) {
     this.router.navigate(['/request', request.id], {
-        queryParams: { returnUrl: '/client' }
-      });
+      queryParams: { returnUrl: '/client' }
+    });
   }
 
   async openNewRequest(type: RequestType) {

@@ -19,7 +19,6 @@ import { remult } from 'remult'
 import { AppRoutingModule } from './app-routing.module'
 import { AppComponent } from './app.component'
 import { AdminGuard, AdminOrManagerGuard, AdminOrManagerOrOperatorGuard, CustomerGuard, ManagerGuard, OperatorGuard } from './auth/AuthGuard'
-import { AddressInputComponent } from './common/address-input/address-input.component'
 import { DataAreaDialogComponent } from './common/data-area-dialog/data-area-dialog.component'
 import { DotsMenuComponent } from './common/dot-menu.component'
 import { InputImageComponent } from './common/input-image/input-image.component'
@@ -44,6 +43,7 @@ import { UsersComponent } from './ui/route/users/users.component'
 import { RequestComponent } from './ui/route/request/request.component'
 import { CustomerListComponent } from './ui/route/customer-list/customer-list.component'
 import { DocumentService } from './service/document.service'
+import { SnpvService } from './service/snpv.service'
 
 @NgModule({
   declarations: [
@@ -61,7 +61,6 @@ import { DocumentService } from './service/document.service'
     YesNoQuestionComponent,
     DataAreaDialogComponent,
     TextAreaDataControlComponent,
-    AddressInputComponent,
     DotsMenuComponent,
     MultiSelectListDialogComponent,
     InputImageComponent,
@@ -101,6 +100,7 @@ import { DocumentService } from './service/document.service'
     OperatorService,
     UserService,
     DocumentService,
+    SnpvService,
     { provide: APP_INITIALIZER, useFactory: initApp, multi: true },
   ],
   bootstrap: [AppComponent],

@@ -1,7 +1,9 @@
 import { Injectable } from "@angular/core";
 import { catchError, from, map, Observable, throwError } from "rxjs";
+import { CalendarController } from "../../shared/controller/calendar.controller";
 import { RequestController } from "../../shared/controller/request.controller";
 import { MortgageRequest } from "../../shared/entity/request.entity";
+import { CalendarEvent } from "../../shared/type/calendar.type";
 import { AssignOperatorRequest } from "../../shared/type/request.type";
 
 @Injectable({
@@ -9,26 +11,13 @@ import { AssignOperatorRequest } from "../../shared/type/request.type";
 })
 export class CalendarService {
 
-    static getAppointments(mobile: string): Observable<MortgageRequest[]> {
-        return from([] as MortgageRequest[]).pipe(
-            map(response => [response] as MortgageRequest[]
-            ),
+    getEvents(requestId: string): Observable<CalendarEvent[]> {
+        return from(CalendarController.getEvents(requestId)).pipe(
+            // map(response => response),
             catchError(error => {
                 return throwError(() => error);
             })
         )
     }
-
-    static assignOperator(req: AssignOperatorRequest): Observable<MortgageRequest> {
-        return from(RequestController.assignOperator(req)).pipe(
-            map(response => response.success && response.data
-                ? response.data as MortgageRequest
-                : {} as MortgageRequest
-            ),
-            catchError(error => {
-                return throwError(() => error);
-            })
-        )
-    }
-
+    
 }

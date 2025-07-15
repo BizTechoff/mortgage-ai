@@ -13,6 +13,9 @@
     "src/**/*.d.ts"
   ],
   "exclude": [
-    "src/server/**/*.ts"
+    "node_modules",
+    "dist",
+    "**/*.spec.ts", // קבצי בדיקות יחידה
+    "src/server/**/*.ts" // <<< לוודא ששורות כאלו קיימות! זה מונע את הבעיה
   ]
 }

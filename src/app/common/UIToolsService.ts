@@ -1,8 +1,6 @@
-import { Injectable, NgZone, ErrorHandler } from '@angular/core'
+import { ErrorHandler, Injectable, NgZone } from '@angular/core'
 import { MatSnackBar } from '@angular/material/snack-bar'
-import { Remult } from 'remult'
 
-import { YesNoQuestionComponent } from './yes-no-question/yes-no-question.component'
 import {
   BusyService,
   CommonUIElementsPluginsService,
@@ -11,20 +9,20 @@ import {
 } from 'common-ui-elements'
 import { terms } from '../../shared/config/terms'
 import {
+  AreaDialogArgs,
   GridDialogArgs,
   InputAddressResult,
-  AreaDialogArgs,
-  UITools,
   MultiSelectOptions,
+  UITools,
 } from './UITools'
-import { TextAreaDataControlComponent } from './textarea-data-control/textarea-data-control.component'
-import { AddressInputComponent } from './address-input/address-input.component'
 import { InputImageComponent } from './input-image/input-image.component'
 import { MultiSelectListDialogComponent } from './multi-select-list-dialog/multi-select-list-dialog.component'
+import { TextAreaDataControlComponent } from './textarea-data-control/textarea-data-control.component'
+import { YesNoQuestionComponent } from './yes-no-question/yes-no-question.component'
 
 @Injectable()
 export class UIToolsService implements UITools {
-  report(what: string, context: string, taskId?: string) {}
+  report(what: string, context: string, taskId?: string) { }
   constructor(
     zone: NgZone,
     private snackBar: MatSnackBar,
@@ -50,10 +48,10 @@ export class UIToolsService implements UITools {
     return await openDialog(
       YesNoQuestionComponent,
       (d) =>
-        (d.args = {
-          message,
-          isAQuestion: false,
-        })
+      (d.args = {
+        message,
+        isAQuestion: false,
+      })
     )
   }
   async gridDialog(args: GridDialogArgs): Promise<void> {
@@ -127,12 +125,13 @@ export class UIToolsService implements UITools {
           },
           inputAddress(
             onSelect?: (result: InputAddressResult, entityInstance: any) => void
-          ) {
-            options.customComponent = {
-              component: AddressInputComponent,
-              args: onSelect,
-            }
-          },
+          ) {}
+          // {
+          //   options.customComponent = {
+          //     component: AddressInputComponent,
+          //     args: onSelect,
+          //   }
+          // },
         })
       }
     }

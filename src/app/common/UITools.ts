@@ -1,5 +1,4 @@
 import { FieldRef, Remult, ValueListItem } from 'remult'
-import { GeocodeResult, Location } from './address-input/google-api-helpers'
 import {
   DataAreaFieldsSetting,
   GridSettings,
@@ -63,7 +62,6 @@ declare module 'remult' {
 export interface InputAddressResult {
   addressByGoogle: string
   location: Location
-  autoCompleteResult: GeocodeResult
 }
 
 export interface GridDialogArgs {

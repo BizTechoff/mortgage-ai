@@ -11,7 +11,6 @@ import { AppointmentWithDetails } from '../../../../shared/type/calendar-event.t
 import { AssignOperatorRequest } from '../../../../shared/type/request.type';
 import { openDialog } from '../../../common-ui-elements';
 import { UIToolsService } from '../../../common/UIToolsService';
-import { CalendarService } from '../../../service/callendar.service';
 import { RequestService } from '../../../service/request.service';
 import { MortgageRequestAssignRequestComponent } from '../../dialog/mortgage-request-assign-request/mortgage-request-assign-request.component';
 import { MortgageRequestUpdateStatusComponent, UpdateStatusPayload } from '../../dialog/mortgage-request-update-status/mortgage-request-update-status.component';
@@ -56,7 +55,6 @@ export class AdminComponent implements OnInit {
   constructor(
     private mortgageService: RequestService,
     // private documentService: DocumentService,
-    private calendarService: CalendarService,
     private fb: FormBuilder,
     private router: Router,
     private ui: UIToolsService
@@ -174,6 +172,11 @@ export class AdminComponent implements OnInit {
   private loadUpcomingAppointments(): void {
     this.appointmentsLoading = true;
 
+    // this.calendarService.getEvents('').subscribe(
+    //   (response) => { },
+    //   (error) => console.error(error)
+    // )
+
     // this.calendarService.getUpcomingAppointments(5).subscribe(
     //   (appointments: AppointmentWithDetails[]) => {
     //     this.upcomingAppointments = appointments;
@@ -233,7 +236,7 @@ export class AdminComponent implements OnInit {
       dlg => dlg.args = { request: request },
       dlg => dlg?.request.assignedOperatorId
     )
-// alert(oldOperatorId)
+    // alert(oldOperatorId)
     if (newOperatorId && newOperatorId !== oldOperatorId) {
       // alert(oldOperatorId)
       const req: AssignOperatorRequest = {
@@ -306,7 +309,7 @@ export class AdminComponent implements OnInit {
 
     if (response) {
       if (response.status !== old) {
-      console.log(`CLIENT: response.status !== oldStatus`, `${response.status.id} !== ${old.id}`, response.status !== old)
+        console.log(`CLIENT: response.status !== oldStatus`, `${response.status.id} !== ${old.id}`, response.status !== old)
         RequestService.updateStatus(request.id, response.status).subscribe(
           (response) => {
             if (response.success && response.data) {// Update the request in the list
@@ -323,7 +326,7 @@ export class AdminComponent implements OnInit {
       }
     }
   }
-  
+
 
   /**
    * Get color class based on request status

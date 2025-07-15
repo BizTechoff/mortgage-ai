@@ -1,18 +1,39 @@
-import compression from 'compression'
-import session from 'cookie-session'
-import { config } from 'dotenv'
-import express from 'express'
-import fs from 'fs'
-import helmet from 'helmet'
-import sslRedirect from 'heroku-ssl-redirect'
-import path from 'path'
-import { fixPhoneInput } from '../app/common/fields/PhoneField'
-import { WhatsAppMessageReceivedInfo, WhatsAppWebhookPayload } from '../shared/type/whatsapp.type'
-import { api } from './api'
-import { ServerWhatsAppServiceReceived } from './service/server.whatsapp.service.receiver'
-import { SqlDatabase } from 'remult'
+import './service/server.calendar'
+import { getEvents } from './service/server.calendar';
+
+import compression from 'compression';
+import session from 'cookie-session';
+import * as dotenv from 'dotenv';
+import express from 'express';
+import fs from 'fs';
+import helmet from 'helmet';
+import sslRedirect from 'heroku-ssl-redirect';
+import path from 'path';
+import { fixPhoneInput } from '../app/common/fields/PhoneField';
+import { WhatsAppMessageReceivedInfo, WhatsAppWebhookPayload } from '../shared/type/whatsapp.type';
+import { api } from './api';
+// import { getEvents } from './service/server.calendar';
+import { ServerWhatsAppServiceReceived } from './service/server.whatsapp.service.receiver';
+import { CalendarController } from '../shared/controller/calendar.controller';
+// import { getEvents } from './service/server.calendar'
+// import { GoogleCalendarService } from './service/googleCalendarService'
+// import '../server/service/server.gmail.calendar'
 // require('../server/service/server.whatsapp.service.sender')
-config()
+// require('../server/service/server.calendar')
+// import geteve from '../server/service/server.calendar'
+
+dotenv.config()
+getEvents()
+// const events = await getEvents()
+// console.log('events',JSON.stringify(events))
+// CalendarController.getEventsHandler = async requestId => getEvents() 
+
+// הוסף את המטפל הזה בתחילת הקובץ
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  // אופציונלי: קרוס את התהליך לאחר דיווח השגיאה
+  // process.exit(1);
+});
 
 // SqlDatabase.LogToConsole = true
 async function startup() {
@@ -120,6 +141,17 @@ async function startup() {
     // The HTTP response has already been sent by this point if all went well.
     return;
   });
+
+  app.use('/api/calendar/events', api.withRemult, async (req, res) => {
+
+    console.log('getEvents..')
+    // getEvents()
+    //   .then((events) => console.log('event list', events))
+    //   .catch((error) => console.error(error))
+    console.log('getEvents finished')
+
+  })
+
 
   let dist = path.resolve('dist/mortgage-ai/browser')
   if (!fs.existsSync(dist)) {
