@@ -17,6 +17,15 @@ export class DayOfWeek {
     }
 }
 
+export const weekDays = [
+    DayOfWeek.sunday,
+    DayOfWeek.monday,
+    DayOfWeek.tuesday,
+    DayOfWeek.wednesday,
+    DayOfWeek.thursday,
+    DayOfWeek.friday,
+    DayOfWeek.saturday
+]
 
 export const OneSecond = 1 * 1000
 export const OneMinute = 60 * OneSecond
@@ -82,8 +91,8 @@ export function lastDateOfMonth(date: Date) {
 // פונקציה עזר להשוואת תאריכים ללא שעות (אם calculateStats משווה תאריכים שלמים)
 export function isSameDay(d1: Date, d2: Date): boolean {
     return d1.getFullYear() === d2.getFullYear() &&
-           d1.getMonth() === d2.getMonth() &&
-           d1.getDate() === d2.getDate();
+        d1.getMonth() === d2.getMonth() &&
+        d1.getDate() === d2.getDate();
 }
 
 export function dateFormat(date: Date, delimiter = '/') {
@@ -102,6 +111,19 @@ export function dateFormat(date: Date, delimiter = '/') {
     return result
 }
 
+export function timeFormat(date: Date, delimiterTime = ':') {
+    let result = ''
+    if (date) {
+        let hour = date.getHours()
+        let min = date.getMinutes()
+
+        result += ('00' + hour).slice(-2)
+        result += delimiterTime
+        result += ('00' + min).slice(-2)
+    }
+    return result
+}
+
 export function dateShortFormat(date: Date, delimiter = '/') {
     let result = ''
     if (date) {
@@ -110,6 +132,23 @@ export function dateShortFormat(date: Date, delimiter = '/') {
 
         result += year.toString().slice(2)
         result += month.toString()
+    }
+    return result
+
+}
+
+export function dateDbFormat(date: Date, delimiter = '-') {
+    let result = ''
+    if (date) {
+        let day = date.getDate()
+        let month = date.getMonth() + 1
+        let year = date.getFullYear()
+
+        result += year
+        result += delimiter
+        result += ('00' + month).slice(-2)
+        result += delimiter
+        result += ('00' + day).slice(-2)
     }
     return result
 

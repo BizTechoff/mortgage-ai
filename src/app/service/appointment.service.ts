@@ -1,7 +1,7 @@
 import { Injectable } from "@angular/core";
-import { catchError, from, map, Observable, throwError } from "rxjs";
+import { catchError, from, Observable, throwError } from "rxjs";
 import { AppointmentController } from "../../shared/controller/appointment.controller";
-import { AppointmentDetails } from "../../shared/type/appointment.type";
+import { AppointmentDetails, AppointmentWithDetails } from "../../shared/type/appointment.type";
 
 @Injectable({
     providedIn: 'root'
@@ -19,5 +19,23 @@ export class AppointmentService {
             })
         );
     }
+
+    getUpcomingAppointments(start = new Date(), max = 10): Observable<AppointmentWithDetails[]> {
+        return from(AppointmentController.getUpcomingAppointments(start, max)).pipe( // <-- You'll need to add getAppointmentsForRequest to RequestController
+            catchError(error => {
+                console.error('Error in CalendarService.getAppointmentsByRequestId:', error);
+                return throwError(() => error);
+            })
+        );
+    }
+
+    // addAppointment(app:AppointmentDetails): Observable<AppointmentDetails[]> {
+    //     return from(AppointmentController.addAppointment(app)).pipe( // <-- You'll need to add getAppointmentsForRequest to RequestController
+    //         catchError(error => {
+    //             console.error('Error in CalendarService.addAppointment:', error);
+    //             return throwError(() => error);
+    //         })
+    //     );
+    // }
 
 }

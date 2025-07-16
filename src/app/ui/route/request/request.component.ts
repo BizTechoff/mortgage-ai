@@ -123,9 +123,9 @@ export class RequestComponent implements OnInit {
 
         // alert(JSON.stringify(fetchedRequest))
         // שליפת פרטי השלב הנוכחי אם הם לא נכללו
-        console.log(1, this.request)
+        // console.log(1, this.request)
         if (!this.request.currentStageDetails && this.request.currentStageDesc) { // אם יש תיאור שלב אבל אין אובייקט שלם
-          console.log(2)
+          // console.log(2)
           const currentStage = await remult.repo(MortgageRequestStage).findFirst(
             { request: this.request, done: undefined! }, // חפש שלב פעיל (שלא נגמר)
             { orderBy: { started: 'desc' }, include: { stage: true } } // כולל פרטי ה-Stage עצמו

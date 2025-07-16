@@ -460,7 +460,10 @@
                     <div class="appointment-slots">
                         <div class="appointment-slot" *ngFor="let slot of availableSlots; let i = index"
                             [class.selected]="selectedAppointment === i" (click)="selectAppointment(i)">
-                            <div class="slot-date">{{slot.date | date:'EEEE, dd/MM/yyyy' }}</div>
+                            <div class="slot-date">
+                                {{slot.date | date:'dd/MM/yyyy' }}
+                                {{getHebrewDay(slot.date)}}
+                            </div>
                             <div class="slot-time">{{slot.time}}</div>
                         </div>
                     </div>

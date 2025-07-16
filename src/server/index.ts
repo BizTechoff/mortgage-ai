@@ -1,5 +1,4 @@
-import './service/server.calendar'
-import { getEvents } from './service/server.calendar';
+import './service/server.calendar';
 
 import compression from 'compression';
 import session from 'cookie-session';
@@ -14,7 +13,7 @@ import { WhatsAppMessageReceivedInfo, WhatsAppWebhookPayload } from '../shared/t
 import { api } from './api';
 // import { getEvents } from './service/server.calendar';
 import { ServerWhatsAppServiceReceived } from './service/server.whatsapp.service.receiver';
-import { CalendarController } from '../shared/controller/calendar.controller';
+// import { CalendarController } from '../shared/controller/calendar.controller';
 // import { getEvents } from './service/server.calendar'
 // import { GoogleCalendarService } from './service/googleCalendarService'
 // import '../server/service/server.gmail.calendar'
@@ -23,7 +22,7 @@ import { CalendarController } from '../shared/controller/calendar.controller';
 // import geteve from '../server/service/server.calendar'
 
 dotenv.config()
-getEvents()
+// getEvents()
 // const events = await getEvents()
 // console.log('events',JSON.stringify(events))
 // CalendarController.getEventsHandler = async requestId => getEvents() 
@@ -141,17 +140,6 @@ async function startup() {
     // The HTTP response has already been sent by this point if all went well.
     return;
   });
-
-  app.use('/api/calendar/events', api.withRemult, async (req, res) => {
-
-    console.log('getEvents..')
-    // getEvents()
-    //   .then((events) => console.log('event list', events))
-    //   .catch((error) => console.error(error))
-    console.log('getEvents finished')
-
-  })
-
 
   let dist = path.resolve('dist/mortgage-ai/browser')
   if (!fs.existsSync(dist)) {

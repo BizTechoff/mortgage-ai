@@ -81,25 +81,3 @@ export interface CalendarEventCancelRequest {
   notifyAttendees?: boolean;
   comment?: string;
 }
-
-// Create interfaces for the server response
-export interface AppointmentWithDetails {
-  id: string;
-  customerId: string;
-  requestId: string;
-  startDate: Date;
-  endDate: Date;
-  title: string;
-  description: string;
-  customer: {
-    id: string;
-    name: string;
-    phone: string;
-    email: string;
-  } | null;
-  request: {
-    id: string;
-    requestType: string;
-    status: string;
-  } | null;
-}

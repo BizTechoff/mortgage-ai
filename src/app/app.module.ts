@@ -30,20 +30,21 @@ import { DemoDataControlAndDataAreaComponent } from './helper/demo-data-control-
 import { HomeComponent } from './home/home.component'
 import { AppointmentService } from './service/appointment.service'
 import { CalendarService } from './service/callendar.service'
+import { DocumentService } from './service/document.service'
 import { OperatorService } from './service/operator.service'
 import { RequestService } from './service/request.service'
+import { SnpvService } from './service/snpv.service'
 import { UserService } from './service/user.service'
 import { MortgageRequestAssignRequestComponent } from './ui/dialog/mortgage-request-assign-request/mortgage-request-assign-request.component'
 import { MortgageRequestUpdateStatusComponent } from './ui/dialog/mortgage-request-update-status/mortgage-request-update-status.component'
 import { AdminComponent } from './ui/route/admin/admin.component'
 import { ClientComponent } from './ui/route/client/client.component'
+import { CustomerListComponent } from './ui/route/customer-list/customer-list.component'
 import { LoginComponent } from './ui/route/login/login.component'
 import { OperatorComponent } from './ui/route/operator/operator.component'
-import { UsersComponent } from './ui/route/users/users.component'
 import { RequestComponent } from './ui/route/request/request.component'
-import { CustomerListComponent } from './ui/route/customer-list/customer-list.component'
-import { DocumentService } from './service/document.service'
-import { SnpvService } from './service/snpv.service'
+import { UsersComponent } from './ui/route/users/users.component'
+import { SilentRedirectComponent } from './ui/route/login/silent-redirect.component'
 
 @NgModule({
   declarations: [
@@ -52,6 +53,7 @@ import { SnpvService } from './service/snpv.service'
     CustomerListComponent,
     HomeComponent,
     LoginComponent,
+    SilentRedirectComponent,
     AdminComponent,
     OperatorComponent,
     ClientComponent,
@@ -64,7 +66,7 @@ import { SnpvService } from './service/snpv.service'
     DotsMenuComponent,
     MultiSelectListDialogComponent,
     InputImageComponent,
-    DemoDataControlAndDataAreaComponent,
+    DemoDataControlAndDataAreaComponent
   ],
   imports: [
     BrowserModule,
@@ -84,7 +86,7 @@ import { SnpvService } from './service/snpv.service'
     MatIconModule,
     MatMenuModule,
     CommonUIElementsModule,
-    ReactiveFormsModule 
+    ReactiveFormsModule
   ],
   providers: [
     UIToolsService,

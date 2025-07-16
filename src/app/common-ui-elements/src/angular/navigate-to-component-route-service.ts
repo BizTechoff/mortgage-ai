@@ -119,7 +119,7 @@ canNavigateToRoute(route: Route, currentQueryParams?: { [key: string]: any }): b
     }
     return true;
   }
-  
+
   // canNavigateToRoute(route: Route) {
   //   if (!route.canActivate) return true
   //   for (let guard of route.canActivate) {
@@ -152,6 +152,8 @@ export class AuthenticatedGuard implements CanActivate {
 
   canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot) {
 
+      // console.log('AuthenticatedGuard.canActivate', route.queryParams, JSON.stringify(route.queryParams))
+
     // console.log('AuthenticatedGuard.canActivate')
 
     if (
@@ -171,6 +173,7 @@ export class AuthenticatedGuard implements CanActivate {
       // ברירת המחדל תהיה ניתוב ללוגין עם הפרמטרים
       // אתה צריך להחליט לאן לנתב כשלא מאומת / לא מורשה.
       // ברוב המקרים, זה יהיה עמוד הלוגין.
+      // console.log('queryParams', JSON.stringify(queryParams))
       const targetUrlTree = this.router.createUrlTree(['/login'], {
         queryParams: queryParams,
         queryParamsHandling: 'merge'

@@ -64,6 +64,26 @@ export class RequestStatus {
     return result
   }
 
+  static completedStatusId = () =>
+    [
+      RequestStatus.COMPLETED.id,
+      RequestStatus.REJECTED.id, // Often rejected/canceled are considered "completed" from a workflow perspective
+      RequestStatus.CANCELED.id
+    ]
+
+
+  static unCompletedStatus = () => {
+    const completedAndRejectedStatuses = [
+      RequestStatus.COMPLETED,
+      RequestStatus.REJECTED,
+      RequestStatus.CANCELED
+    ];
+
+    return RequestStatus.getAllStatuses().filter(status =>
+      !completedAndRejectedStatuses.includes(status)
+    );
+  }
+
   /**
    * Checks if a given status instance represents a "completed" state.
    */

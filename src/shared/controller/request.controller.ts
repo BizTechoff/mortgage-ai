@@ -102,8 +102,8 @@ export class RequestController extends ControllerBase {
     ): Promise<UpdateRequestResponse> {
         const result: UpdateRequestResponse = { success: false, error: { code: 0, message: '' }, timestamp: Date.now() };
         const requestRepo = remult.repo(MortgageRequest);
-        console.log('SERVER: partialData.filled: ', data)
-        console.log(`SERVER: newStatus`, `${newStatus?.id}`)
+        // console.log('SERVER: partialData.filled: ', data)
+        // console.log(`SERVER: newStatus`, `${newStatus?.id}`)
 
         try {
             const existingRequest = await requestRepo.findId(requestId);
@@ -116,7 +116,7 @@ export class RequestController extends ControllerBase {
             // עדכון השדות - השתמש ב-Object.assign כדי לעדכן את כל השדות שנשלחו ב-data
             // זה יעדכן את כל השדות ששמותיהם זהים ב-data וב-existingRequest
 
-            console.log(`SEND: { keyFinancials: ${JSON.stringify(data.keyFinancials)} }`)
+            // console.log(`SEND: { keyFinancials: ${JSON.stringify(data.keyFinancials)} }`)
             RequestController.assignValuesToRequest(existingRequest, data)
             existingRequest.updatedAt = new Date(); // עדכן את תאריך העדכון
 
@@ -129,7 +129,7 @@ export class RequestController extends ControllerBase {
             const updatedRequest = await requestRepo.save(existingRequest); // שמירת העדכונים
             result.data = updatedRequest;
             result.success = true;
-            console.log('SAVED!')
+            // console.log('SAVED!')
         } catch (error) {
             result.error!.code = 500;
             result.error!.message = error instanceof Error ? error.message : JSON.stringify(error);
@@ -140,7 +140,7 @@ export class RequestController extends ControllerBase {
     }
 
     static assignValuesToRequest(request: MortgageRequest, values: Partial<MortgageRequest>) {
-        console.log(`RECEIVED: { full data from client: ${JSON.stringify(values)} }`);
+        // console.log(`RECEIVED: { full data from client: ${JSON.stringify(values)} }`);
 
         // --- 1. אתחול אובייקטים מקוננים ב-request אם אינם קיימים ---
         // (שימוש ב-?? {} מבטיח שאם האובייקט הוא null/undefined, הוא יאותחל כאובייקט ריק)
@@ -164,7 +164,7 @@ export class RequestController extends ControllerBase {
             // idNumber: (values as any).idNumber,
             address: (values as any).address,
         });
-        console.log(`After personalDetails: ${JSON.stringify(request.personalDetails)}`);
+        //console.log(`After personalDetails: ${JSON.stringify(request.personalDetails)}`);
 
         // מצב משפחתי ודמוגרפי
         Object.assign(request.demographicDetails, {
@@ -173,7 +173,7 @@ export class RequestController extends ControllerBase {
             husbandAge: (values as any).husbandAge,
             wifeAge: (values as any).wifeAge,
         });
-        console.log(`After demographicDetails: ${JSON.stringify(request.demographicDetails)}`);
+        //console.log(`After demographicDetails: ${JSON.stringify(request.demographicDetails)}`);
 
         // פרטים פיננסיים מרכזיים (keyFinancials)
         // הערה: יש לוודא ששמות השדות ב-values תואמים לשמות השדות ב-keyFinancials בישות.
@@ -184,7 +184,7 @@ export class RequestController extends ControllerBase {
             currentBank: (values as any).currentBank,
             // ... הוסף כאן שדות נוספים השייכים ל-keyFinancials מהאובייקט השטוח values
         });
-        console.log(`After keyFinancials: ${JSON.stringify(request.keyFinancials)}`);
+        //console.log(`After keyFinancials: ${JSON.stringify(request.keyFinancials)}`);
 
         // תעסוקה ופיננסים נוספים (employmentAndOtherFinancials)
         Object.assign(request.employmentAndOtherFinancials, {
@@ -195,7 +195,7 @@ export class RequestController extends ControllerBase {
             hasLongTermLoans: (values as any).hasLongTermLoans,
             // ... הוסף כאן שדות נוספים השייכים ל-employmentAndOtherFinancials
         });
-        console.log(`After employmentAndOtherFinancials: ${JSON.stringify(request.employmentAndOtherFinancials)}`);
+        //console.log(`After employmentAndOtherFinancials: ${JSON.stringify(request.employmentAndOtherFinancials)}`);
 
         // נתוני נכס (propertyData)
         Object.assign(request.propertyData, {
@@ -206,7 +206,7 @@ export class RequestController extends ControllerBase {
             equityAmount: (values as any).equityAmount,
             // ... הוסף כאן שדות נוספים השייכים ל-propertyData
         });
-        console.log(`After propertyData: ${JSON.stringify(request.propertyData)}`);
+        //console.log(`After propertyData: ${JSON.stringify(request.propertyData)}`);
         //  loanData?: {
         //     requestedAmount?: number; //
         //     loanPeriod?: number; //
@@ -219,7 +219,7 @@ export class RequestController extends ControllerBase {
             loanTerm: (values as any).loanTerm,
             // ... הוסף כאן שדות נוספים השייכים ל-loanData
         });
-        console.log(`After loanData: ${JSON.stringify(request.loanData)}`);
+        //console.log(`After loanData: ${JSON.stringify(request.loanData)}`);
 
         // פרטי מחזור (refinanceDetails) - אם רלוונטי
         Object.assign(request.refinanceDetails, {
@@ -229,7 +229,7 @@ export class RequestController extends ControllerBase {
             hasOtherLoans: (values as any).hasOtherLoans,
             // ... הוסף כאן שדות נוספים השייכים ל-refinanceDetails
         });
-        console.log(`After refinanceDetails: ${JSON.stringify(request.refinanceDetails)}`);
+        //console.log(`After refinanceDetails: ${JSON.stringify(request.refinanceDetails)}`);
 
         // פרטי הלוואות אחרות (otherLoansDetails) - אם רלוונטי
         Object.assign(request.otherLoansDetails, {
@@ -237,7 +237,7 @@ export class RequestController extends ControllerBase {
             otherLoansMonthlyPayment: (values as any).otherLoansMonthlyPayment,
             // ... הוסף כאן שדות נוספים השייכים ל-otherLoansDetails
         });
-        console.log(`After otherLoansDetails: ${JSON.stringify(request.otherLoansDetails)}`);
+        //console.log(`After otherLoansDetails: ${JSON.stringify(request.otherLoansDetails)}`);
 
         // מטרות וקשיים (goalsAndDifficulties)
         Object.assign(request.goalsAndDifficulties, {
@@ -246,7 +246,7 @@ export class RequestController extends ControllerBase {
             paymentDifficultyRating: (values as any).paymentDifficultyRating,
             optimalSituation: (values as any).optimalSituation,
         });
-        console.log(`After goalsAndDifficulties: ${JSON.stringify(request.goalsAndDifficulties)}`);
+        //console.log(`After goalsAndDifficulties: ${JSON.stringify(request.goalsAndDifficulties)}`);
 
 
         // --- 3. עדכון שדות ברמה העליונה בישות (שאינם חלק מאובייקטים מקוננים) ---
@@ -271,7 +271,7 @@ export class RequestController extends ControllerBase {
         if (values.documents !== undefined) {
             request.documents = values.documents; // יחליף את המערך הקיים
         }
-        console.log(`After documents: ${JSON.stringify(request.documents)}`);
+        //console.log(`After documents: ${JSON.stringify(request.documents)}`);
 
         // appointmentDetails הוא אובייקט. אם values.appointmentDetails הוא אובייקט מלא, הוא יכול להחליף.
         // אם זה רק עדכון חלקי, נמזג אותו כמו שדות אחרים.
@@ -279,7 +279,7 @@ export class RequestController extends ControllerBase {
             request.appointmentDetails = request.appointmentDetails ?? { date: undefined!, time: "" };
             Object.assign(request.appointmentDetails, values.appointmentDetails);
         }
-        console.log(`After appointmentDetails: ${JSON.stringify(request.appointmentDetails)}`);
+        //console.log(`After appointmentDetails: ${JSON.stringify(request.appointmentDetails)}`);
 
 
         // --- 5. טיפול בסטטוס חדש (newStatus) אם נשלח במפורש ---
@@ -439,7 +439,7 @@ export class RequestController extends ControllerBase {
 
             const savedRequest = await request.save();
 
-            console.log("savedRequest.id:", savedRequest.id);
+            // console.log("savedRequest.id:", savedRequest.id);
             result.success = true;
             result.data = savedRequest;
 
@@ -485,14 +485,14 @@ export class RequestController extends ControllerBase {
                     // יש להוסיף שדה 'notes' או 'log' ל-MortgageRequestStage entity
                     // לדוגמה: currentRequestStage.notes = payload.stageNotes;
                     currentRequestStage.notes = payload.stageNotes;
-                    console.log(`Notes for stage ${currentRequestStage.stage?.desc}: ${payload.stageNotes}`);
+                    // console.log(`Notes for stage ${currentRequestStage.stage?.desc}: ${payload.stageNotes}`);
                 }
 
                 // סיום השלב הנוכחי אם נתבקש
                 if (payload.markStageAsCompleted) {
                     currentRequestStage.done = new Date();
                     await requestStageRepo.save(currentRequestStage);
-                    console.log(`Stage '${currentRequestStage.stage?.desc}' for request ${request.id} marked as completed.`);
+                    // console.log(`Stage '${currentRequestStage.stage?.desc}' for request ${request.id} marked as completed.`);
 
                     // 2. פתיחת השלב הבא (באופן אוטומטי לפי סדר seq)
                     const nextStage = await stageRepo.findFirst(
@@ -508,9 +508,9 @@ export class RequestController extends ControllerBase {
                             untill: new Date(new Date().setDate(new Date().getDate() + nextStage.days))
                         });
                         result.newStageStarted = await requestStageRepo.save(newStageEntry);
-                        console.log(`New stage '${nextStage.desc}' started for request ${request.id}.`);
+                        // console.log(`New stage '${nextStage.desc}' started for request ${request.id}.`);
                     } else {
-                        console.log(`No next stage defined for request ${request.id} after stage '${currentRequestStage.stage?.desc}'.`);
+                        // console.log(`No next stage defined for request ${request.id} after stage '${currentRequestStage.stage?.desc}'.`);
                         request.status = RequestStatus.WAITING_FOR_APPROVAL
                         request.updatedAt = new Date(); // עדכן תאריך עדכון אחרון
                         await requestRepo.save(request)

@@ -7,11 +7,12 @@ import { AdminGuard, AdminOrManagerGuard, AdminOrManagerOrOperatorGuard, Custome
 import { ShowDialogOnErrorErrorHandler } from './common/UIToolsService';
 import { AdminComponent } from './ui/route/admin/admin.component';
 import { ClientComponent } from './ui/route/client/client.component';
+import { CustomerListComponent } from './ui/route/customer-list/customer-list.component';
 import { LoginComponent } from './ui/route/login/login.component';
 import { OperatorComponent } from './ui/route/operator/operator.component';
 import { RequestComponent } from './ui/route/request/request.component';
 import { UsersComponent } from './ui/route/users/users.component';
-import { CustomerListComponent } from './ui/route/customer-list/customer-list.component';
+import { SilentRedirectComponent } from './ui/route/login/silent-redirect.component';
 
 const defaultRoute = 'login'; // Changed default route to 'login'
 const routes: Routes = [
@@ -32,8 +33,10 @@ const routes: Routes = [
   // { path: 'demo', component: DemoDataControlAndDataAreaComponent },
   { path: 'user', component: UsersComponent, canActivate: [AdminGuard], data: { name: terms.userAccounts } },
   // { path: '/', redirectTo: '/' + defaultRoute, pathMatch: 'full' },
-  { path: '', redirectTo: '/' + defaultRoute, pathMatch: 'full' },
-  { path: '**', redirectTo: '/' + defaultRoute, pathMatch: 'full' }
+  // { path: '', redirectTo: '/' + defaultRoute, pathMatch: 'full' },
+  // { path: '**', redirectTo: '/' + defaultRoute, pathMatch: 'full' }
+  { path: '', component: SilentRedirectComponent, pathMatch: 'full' },
+  { path: '**', component: SilentRedirectComponent } // תופס כל נתיב אחר ומפנה נכון
 ];
 
 @NgModule({

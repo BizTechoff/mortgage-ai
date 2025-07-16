@@ -106,7 +106,7 @@ export class AppComponent implements OnInit {
         filter(route => route.outlet === 'primary'),
         mergeMap(route => route.data)
       ).subscribe(data => {
-        console.log(data, 'data');
+        // console.log(data, 'data');
         this.isLoginPage = this.router.url.includes('/login');
         console.log('AppComponent Ended to: ' + this.router.url);
         // לדוגמה: this.showLoader = false; // הסתר את הלודר בסיום הניווט

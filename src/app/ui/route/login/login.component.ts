@@ -69,6 +69,7 @@ export class LoginComponent implements OnInit {
       const prefillUsername = params['username'] || null;
       const prefillMobile = params['mobile'] || null;
 
+      console.log('LOGIN,',prefillUsername, prefillMobile)
       if (prefillUsername) {
         this.f['username'].setValue(prefillUsername);
       }
@@ -236,11 +237,11 @@ export class LoginComponent implements OnInit {
 
       // 4. אם לא נותבנו חזרה לנתיב המקורי (או שלא היו פרמטרים), נתב לפי התפקיד בלבד
       if (userRoles?.includes('admin')) {
-        this.router.navigate(['/admin']);
+        this.router.navigate(['/admin'], { queryParams: this.originalRouteQueryParams });
       } else if (userRoles?.includes('operator')) {
-        this.router.navigate(['/operator']);
+        this.router.navigate(['/operator'], { queryParams: this.originalRouteQueryParams });
       } else if (userRoles?.includes('customer')) {
-        this.router.navigate(['/client']);
+        this.router.navigate(['/client'], { queryParams: this.originalRouteQueryParams });
       } else {
         this.router.navigate(['/']); // ברירת מחדל לדף הבית
       }

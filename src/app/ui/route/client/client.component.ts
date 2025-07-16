@@ -10,10 +10,11 @@ import { DocumentType, DocumentTypeLabels } from '../../../../shared/enum/docume
 import { RequestStatus, RequestStatusLabels } from '../../../../shared/enum/request-status.enum';
 import { RequestType, RequestTypeLabels } from '../../../../shared/enum/request-type.enum';
 import { Roles } from '../../../../shared/enum/roles';
+import { AppointmentDetails } from '../../../../shared/type/appointment.type';
 import { DocumentItem } from '../../../../shared/type/document.type';
 import { SignInController } from '../../../auth/SignInController';
 import { BusyService } from '../../../common-ui-elements';
-import { fixPhoneInput } from '../../../common/fields/PhoneField';
+import { weekDays } from '../../../common/dateFunc';
 import { UIToolsService } from '../../../common/UIToolsService';
 import { AppointmentService } from '../../../service/appointment.service';
 import { CalendarService } from '../../../service/callendar.service';
@@ -68,12 +69,13 @@ export class ClientComponent implements OnInit {
   uploadedFiles: any = {};
 
   // Appointment state
-  availableSlots: any[] = [
-    { date: new Date(2025, 0, 15), time: '10:00' },
-    { date: new Date(2025, 0, 16), time: '14:00' },
-    { date: new Date(2025, 0, 17), time: '11:00' },
-    { date: new Date(2025, 0, 18), time: '15:00' }
-  ];
+  availableSlots = [] as AppointmentDetails[]
+  // [
+  //   { date: new Date(2025, 0, 15), time: '10:00' },
+  //   { date: new Date(2025, 0, 16), time: '14:00' },
+  //   { date: new Date(2025, 0, 17), time: '11:00' },
+  //   { date: new Date(2025, 0, 18), time: '15:00' }
+  // ];
   selectedAppointment = -1;
   appointmentError = false;
   appointmentDetails: any = null;
@@ -186,41 +188,49 @@ export class ClientComponent implements OnInit {
 
   async ngOnInit() {
     console.log('ClientComponent: ' + this.router.url);
-    if (!remult.authenticated()) throw 'NOT AUTH - FROM REMULT';
+    if (!remult.authenticated()) throw 'NOT AUTH - FROM REMULT ON ClientComponentClientComponent';
     if (!this.isCustomer()) throw 'How u got here?'
 
     this.route.queryParams.subscribe(async params => {
       this.busy.doWhileShowingBusy(
         async () => {
-          this.mobile = fixPhoneInput(
-            params['mobile'] as string);
+          // this.mobile = fixPhoneInput(
+          //   params['mobile'] as string);
 
-          var found = false
-          if (this.mobile) {
-            this.cameFromWappLink = true
-            var u = await remult.repo(User).findOne({ where: { mobile: this.mobile! } });
-            if (u) {
-              this.mobileValidated = !!u.verifyTime;
-              this.name = u.name;
-              found = true
-            }
-          }
-          if (!found) {
-            const u = await remult.repo(User).findId(remult.user?.id!)
-            if (u) {
-              this.mobileValidated = !!u.verifyTime;
-              this.name = u.name;
-              this.mobile = u.mobile
-            }
+          // var found = false
+          // if (this.mobile) {
+          //   this.cameFromWappLink = true
+          //   var u = await remult.repo(User).findOne({ where: { mobile: this.mobile! } });
+          //   if (u) {
+          //     this.mobileValidated = !!u.verifyTime;
+          //     this.name = u.name;
+          //     found = true
+          //   }
+          // }
+          // if (!found) {
+          //   const u = await remult.repo(User).findId(remult.user?.id!)
+          //   if (u) {
+          //     this.mobileValidated = !!u.verifyTime;
+          //     this.name = u.name;
+          //     this.mobile = u.mobile
+          //   }
+          // }
+
+          const customer = await remult.repo(User).findId(remult.user?.id!)
+          if (customer) {
+            this.mobileValidated = !!customer.verifyTime;
+            this.name = customer.name;
+            this.mobile = customer.mobile
           }
 
           this.requestType = RequestType.fromString(params['type'] as string);
           console.log(`ClientComponent.ngOnInit: { mobile: '${this.mobile}', requestType: '${this.requestType.id}' }`);
           await this.setVars();
-          this.fillAvailableSlots()
         })
     });
   }
+
+  getHebrewDay = (date: Date) => weekDays[new Date(date).getDay()].caption
 
   fillAvailableSlots(max = 5) {
 
@@ -230,14 +240,12 @@ export class ClientComponent implements OnInit {
     //   }
     // )
 
-    this.calendarService.getEvents('').subscribe(
+    this.calendarService.getNext7FreeAppointment().subscribe(
       (events) => {
         console.log('events', JSON.stringify(events))
         if (events?.length) {
           this.availableSlots.splice(0)
-          for (const e of events) {
-            this.availableSlots.push({ date: new Date(e.start.dateTime), time: e.start.timeZone })
-          }
+          this.availableSlots.push(...events)
         }
       },
       (error) => console.error(error)
@@ -255,29 +263,19 @@ export class ClientComponent implements OnInit {
    * Load client's mortgage requests
    */
   loadClientRequests(): void {
-    if (!this.mobile) return;
     this.loading.requests = true;
 
+    this.requests.splice(0)
     RequestService.getRequests().subscribe(
       (requests) => {
-        this.requests = requests;
-        if (requests.length) {// Find active request
-          // const activeRequest = this.requests.find(r =>
-          //   !RequestStatus.isCompletedStatus(r.status)
-          // );
+        if (requests.length) {
+          this.requests.push(...requests);
           const activeRequest = this.requests[0]
-          if (activeRequest) {
-            // alert(33)
-            this.setActiveRequest(activeRequest);
-            // this.loading.requests = true;
-          }
+          this.setActiveRequest(activeRequest);
         }
-        else if (this.cameFromWappLink) {
-          // <<< חדש: יצירת טיוטה ראשונית גם בלחיצה על כפתור
+        if (!this.activeRequest && this.requestType.id !== RequestType.none.id) {
+          // asked from link
           this.createInitialDraft();
-        }
-        else {
-          this.isLoadedOnce = true
         }
       },
       (error) => {
@@ -325,6 +323,9 @@ export class ClientComponent implements OnInit {
 
   async openExistingRequest(request: MortgageRequest) {
     console.log('openExistingRequest')
+    if (!this.availableSlots.length) {
+      this.fillAvailableSlots()
+    }
 
     // alert(request?.id)
     this.requestType = request.requestType;
@@ -583,7 +584,7 @@ export class ClientComponent implements OnInit {
     this.updateFormProgress();
 
 
-    this.getAllFields()
+    // this.getAllFields()
   }
 
   // פונקציית עזר לקבלת הקבצים שהועלו עבור סוג מסוים
@@ -979,7 +980,13 @@ export class ClientComponent implements OnInit {
           this.formSubmitSuccess = true;
           this.requestNumber = response.data.requestNumber || Math.floor(Math.random() * 100000); // שימוש ב-requestNumber מהתגובה
           this.appointmentDetails = (isAppointmentStep && this.selectedAppointment >= 0) ? this.availableSlots[this.selectedAppointment] : null;
-
+          if (this.appointmentDetails && this.appointmentDetails.date) {
+            console.log('CLIENT :: addAppointment :: ' + JSON.stringify(this.appointmentDetails));
+            this.calendarService.addAppointment(this.appointmentDetails).subscribe(
+              success => this.ui.info('אירוע נוסף ליומן בהצלחה'),
+              error => this.ui.info('כישלון בהוספת אירוע ליומן, ' + error)
+            )
+          }
           this.scrollToTop(); // Scroll to top to show success message
           this.loadClientRequests(); // Refresh requests list in dashboard view
         } else {

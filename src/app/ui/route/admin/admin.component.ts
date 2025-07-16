@@ -7,13 +7,14 @@ import { startWith, switchMap, tap } from 'rxjs/operators';
 import { MortgageRequest } from '../../../../shared/entity/request.entity';
 import { RequestStatus } from '../../../../shared/enum/request-status.enum';
 import { RequestType } from '../../../../shared/enum/request-type.enum';
-import { AppointmentWithDetails } from '../../../../shared/type/calendar-event.type';
 import { AssignOperatorRequest } from '../../../../shared/type/request.type';
 import { openDialog } from '../../../common-ui-elements';
 import { UIToolsService } from '../../../common/UIToolsService';
 import { RequestService } from '../../../service/request.service';
 import { MortgageRequestAssignRequestComponent } from '../../dialog/mortgage-request-assign-request/mortgage-request-assign-request.component';
 import { MortgageRequestUpdateStatusComponent, UpdateStatusPayload } from '../../dialog/mortgage-request-update-status/mortgage-request-update-status.component';
+import { AppointmentService } from '../../../service/appointment.service';
+import { AppointmentWithDetails } from '../../../../shared/type/appointment.type';
 
 @Component({
   selector: 'app-admin',
@@ -57,7 +58,8 @@ export class AdminComponent implements OnInit {
     // private documentService: DocumentService,
     private fb: FormBuilder,
     private router: Router,
-    private ui: UIToolsService
+    private ui: UIToolsService,
+    private appointmentService:AppointmentService
   ) {
     // Initialize filter form
     this.filterForm = this.fb.group({
@@ -172,21 +174,13 @@ export class AdminComponent implements OnInit {
   private loadUpcomingAppointments(): void {
     this.appointmentsLoading = true;
 
-    // this.calendarService.getEvents('').subscribe(
-    //   (response) => { },
-    //   (error) => console.error(error)
-    // )
-
-    // this.calendarService.getUpcomingAppointments(5).subscribe(
-    //   (appointments: AppointmentWithDetails[]) => {
-    //     this.upcomingAppointments = appointments;
-    //     this.appointmentsLoading = false;
-    //   },
-    //   (error) => {
-    //     console.error('Error loading appointments:', error);
-    //     this.appointmentsLoading = false;
-    //   }
-    // );
+     this.appointmentService.getUpcomingAppointments(new Date(), 10).subscribe(
+      (appointments) => {
+        this.upcomingAppointments.splice(0)
+        this.upcomingAppointments.push(...appointments)
+      },
+      (error) => console.error(error)
+     )
 
 
     this.appointmentsLoading = false;
