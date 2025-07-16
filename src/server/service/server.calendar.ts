@@ -1,12 +1,13 @@
-// const { google } = require('googleapis'); // Changed to require
-// import { config } from 'dotenv';
 import { calendar_v3, google } from 'googleapis';
-// import * as readline from 'readline';
-import { CalendarEvent } from '../../shared/type/calendar.type';
+import { timeFormat } from '../../app/common/dateFunc';
 import { CalendarController } from '../../shared/controller/calendar.controller';
 import { AppointmentDetails } from '../../shared/type/appointment.type';
-import { timeFormat } from '../../app/common/dateFunc';
+import { CalendarEvent } from '../../shared/type/calendar.type';
 console.log('server.calendar.ts loaded')
+
+CalendarController.getEventsHandler = async requestId => getEvents()
+CalendarController.getNext7FreeAppointmentHandler = async start => getNext7FreeAppointmentHandler(start)
+CalendarController.addAppointmentHandler = async event => addEvent(event)
 
 // --- קבועים להגדרת כללי החיפוש ---
 const SLOT_DURATION_MINUTES = 90;
@@ -16,10 +17,6 @@ const WORK_DAY_END_HOUR = 18;
 const LUNCH_START_HOUR = 12;
 const LUNCH_END_HOUR = 14;
 const SEARCH_RANGE_DAYS = 60; // טווח חיפוש קדימה למניעת לולאה אינסופית
-
-CalendarController.getEventsHandler = async requestId => getEvents() 
-CalendarController.getNext7FreeAppointmentHandler = async start => getNext7FreeAppointmentHandler(start)
-CalendarController.addAppointmentHandler = async event => addEvent(event)
 
 export const getClientByOAuth = async () => {
     try {
@@ -92,7 +89,7 @@ export const getEvents = async (maxResults = 10): Promise<CalendarEvent[]> => {
             console.error('Error reading calendar:', error);
         }
     }
-    console.log('result',JSON.stringify(result))
+    console.log('result', JSON.stringify(result))
     return result;
 };
 
@@ -102,8 +99,8 @@ export const getEvents = async (maxResults = 10): Promise<CalendarEvent[]> => {
  */
 export const getNext7FreeAppointmentHandler = async (start = new Date()): Promise<AppointmentDetails[]> => {
     console.log('SERVER :: Finding next 7 free slots has started!');
-    
-    const foundSlots= [] as AppointmentDetails[];
+
+    const foundSlots = [] as AppointmentDetails[];
     const client = await getClientByOAuth();
     if (!client) {
         console.error("Failed to get Google API client.");
@@ -158,30 +155,21 @@ export const getNext7FreeAppointmentHandler = async (start = new Date()): Promis
 
         // בדיקה שהמועד לא נכנס להפסקת צהריים
         const crossesLunchBreak = potentialStart.getHours() < LUNCH_END_HOUR && potentialEnd.getHours() >= LUNCH_START_HOUR && !(potentialEnd.getHours() === LUNCH_START_HOUR && potentialEnd.getMinutes() === 0);
-// console.log('getNext7FreeAppointmentHandler - 1')
         if (!crossesLunchBreak) {
-            // console.log('getNext7FreeAppointmentHandler - 2')
             // בדיקה שהמועד לא מתנגש עם אירועים קיימים
             if (!isOverlapping(potentialStart, potentialEnd, existingEvents)) {
-            // console.log('getNext7FreeAppointmentHandler - 3')
                 // נמצא מועד פנוי!
                 foundSlots.push({
                     date: potentialStart,
                     time: timeFormat(potentialStart)
                 })
-                // foundSlots.push({
-                //     title: 'פגישה פנויה',
-                //     start: potentialStart.toISOString(),
-                //     end: potentialEnd.toISOString(),
-                //     allDay: false
-                // });
             }
         }
-        
+
         // קדם את המועד הבא לבדיקה ב-30 דקות
         currentDate.setMinutes(currentDate.getMinutes() + 30);
     }
-    
+
     console.log(`Found a total of ${foundSlots.length} free slots.`);
     console.log('result', JSON.stringify(foundSlots, null, 2));
     return foundSlots;
@@ -334,109 +322,4 @@ const googleEventToCalendarEvent = (event: calendar_v3.Schema$Event) => {
     return result
 }
 
-// Export the function for usage in other files
-// module.exports = { readCalendar };
-
-/// For organiztion
-// const getClientByServiceAuth = async () => {
-//     try {
-//         // Setup credentials
-//         const credentials = {
-//             type: process.env['GOOGLE_TYPE'],
-//             project_id: process.env['GOOGLE_PROJECT_ID'],
-//             private_key_id: process.env['GOOGLE_PRIVATE_KEY_ID'],
-//             private_key: process.env['GOOGLE_PRIVATE_KEY']?.replace(/\\n/g, '\n'),
-//             client_email: process.env['GOOGLE_CLIENT_EMAIL'],
-//             client_id: process.env['GOOGLE_CLIENT_ID'],
-//             auth_uri: process.env['GOOGLE_AUTH_URI'],
-//             token_uri: process.env['GOOGLE_TOKEN_URI'],
-//             auth_provider_x509_cert_url: process.env['GOOGLE_AUTH_PROVIDER_CERT_URL'],
-//             client_x509_cert_url: process.env['GOOGLE_CLIENT_CERT_URL'],
-//             universe_domain: process.env['GOOGLE_UNIVERSE_DOMAIN'],
-//         };
-
-//         const options = {
-//             email: credentials.client_email,
-//             key: credentials.private_key,
-//             scopes: ['https://www.googleapis.com/auth/calendar'], // Calendar API scope
-//         }
-
-//         // Initialize the JWT client
-//         const auth = new google.auth.JWT(options);
-
-//         // Initialize Calendar API client
-//         const calendar = google.calendar({ version: 'v3', auth });
-//         return calendar
-//     } catch (error) {
-//         console.error('Error reading calendar:', error);
-//     }
-//     return undefined!
-// }
-
-
-
-// config()
-// const SCOPES = ['https://www.googleapis.com/auth/calendar']; // Calendar API scope
-
-/// Used once to get the token.d
-// export const getRefreshToken = async () => {
-//     try {
-//         // Load credentials from environment variables
-//         const credentials = {
-//             client_id: process.env['GOOGLE_CLIENT_ID'],
-//             client_secret: process.env['GOOGLE_CLIENT_SECRET'],
-//             redirect_uri: process.env['GOOGLE_REDIRECT_URI'], // Update to your redirect URI
-//         };
-
-//         if (!credentials.client_id || !credentials.client_secret || !credentials.redirect_uri) {
-//             throw new Error('Missing OAuth credentials in environment variables.');
-//         }
-
-//         // Initialize OAuth2 client
-//         const oAuth2Client = new google.auth.OAuth2(
-//             credentials.client_id,
-//             credentials.client_secret,
-//             credentials.redirect_uri
-//         );
-
-//         // Generate the authorization URL
-//         const authUrl = oAuth2Client.generateAuthUrl({
-//             access_type: 'offline',
-//             scope: SCOPES,
-//             prompt: 'consent' // Force the consent screen to show again
-//         });
-
-//         console.log('Authorize this app by visiting this URL:', authUrl);
-
-//         // Wait for the authorization code from the user
-//         const code = await getAuthorizationCode();
-//         // console.log('code', code)
-//         const { tokens } = await oAuth2Client.getToken(code);
-//         oAuth2Client.setCredentials(tokens);
-
-//         console.log('Tokens acquired:', tokens);
-
-//         // Initialize Calendar API client
-//         const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
-//         return calendar;
-//     } catch (error) {
-//         console.error('Error setting up OAuth client:', error);
-//         return undefined!;
-//     }
-// };
-
-// Function to get the authorization code from the user
-// const getAuthorizationCode = (): Promise<string> => {
-//     const rl = readline.createInterface({
-//         input: process.stdin,
-//         output: process.stdout,
-//     });
-
-//     return new Promise((resolve) => {
-//         rl.question('Enter the code from the authorization URL here: ', (code) => {
-//             rl.close();
-//             resolve(code.trim());
-//         });
-//     });
-// };
-
+// module.exports = { this };

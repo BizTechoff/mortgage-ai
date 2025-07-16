@@ -4,6 +4,7 @@ import { Component, HostListener, OnInit } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { remult } from 'remult';
+import { finalize, forkJoin, of, switchMap, tap } from 'rxjs';
 import { MortgageRequest } from '../../../../shared/entity/request.entity';
 import { User } from '../../../../shared/entity/user.entity';
 import { DocumentType, DocumentTypeLabels } from '../../../../shared/enum/document-type.enum';
@@ -12,6 +13,8 @@ import { RequestType, RequestTypeLabels } from '../../../../shared/enum/request-
 import { Roles } from '../../../../shared/enum/roles';
 import { AppointmentDetails } from '../../../../shared/type/appointment.type';
 import { DocumentItem } from '../../../../shared/type/document.type';
+import { UpdateRequestResponse } from '../../../../shared/type/request.type';
+import { snpvCustomer } from '../../../../shared/type/snpv.type';
 import { SignInController } from '../../../auth/SignInController';
 import { BusyService } from '../../../common-ui-elements';
 import { weekDays } from '../../../common/dateFunc';
@@ -116,6 +119,7 @@ export class ClientComponent implements OnInit {
   requestStatuses = Object.values(RequestStatus);
   requestTypes = Object.values(RequestType);
   documentTypes = Object.values(DocumentType);
+  RequestService: any;
 
   constructor(
     private router: Router,
@@ -973,6 +977,65 @@ export class ClientComponent implements OnInit {
     //   finalStatus = RequestStatus.WAITING_FOR_DOCUMENTS; // Refinance goes to documents upload
     // }
 
+    RequestService.update(this.activeRequestId, submitData, finalStatus).pipe(
+      // שלב 1: ולידציה ראשונית של התשובה. אם נכשל, זרוק שגיאה שתיתפס ב-catchError
+      tap((response: UpdateRequestResponse) => {
+        if (!response.success || !response.data?.id) {
+          throw new Error(response.error?.message || 'שליחת הבקשה נכשלה');
+        }
+      }),
+      // שלב 2: אם השלב הראשון הצליח, עבור לביצוע הפעולות הבאות
+      switchMap((response: UpdateRequestResponse) => {
+        // בצע את כל הפעולות הסינכרוניות כאן
+        console.log('Form submitted successfully and status updated:', response.data!.status.caption);
+        this.formSubmitSuccess = true;
+        this.requestNumber = response.data!.requestNumber || Math.floor(Math.random() * 100000);
+        this.appointmentDetails = (isAppointmentStep && this.selectedAppointment >= 0) ? this.availableSlots[this.selectedAppointment] : null;
+
+        // הכן את מערך הקריאות האסינכרוניות שירוצו במקביל
+        const parallelCalls$ = [];
+
+        // הוסף את הקריאה ליומן רק אם יש צורך
+        if (this.appointmentDetails?.date) {
+          console.log('CLIENT :: Preparing addAppointment :: ' + JSON.stringify(this.appointmentDetails));
+          // const addAppointment$ = this.calendarService.addAppointment(this.appointmentDetails).pipe(
+          //   tap(() => this.ui.info('אירוע נוסף ליומן בהצלחה'))
+          // );
+          // parallelCalls$.push(addAppointment$);
+        }
+
+        // הכן והוסף את הקריאה להוספת לקוח
+        const snpvCust = {
+          mobiles: [response.data!.personalDetails?.mobile!],
+          names: [response.data!.personalDetails?.fullName!],
+          lead: true
+        } as snpvCustomer;
+
+        const addCustomer$ = this.snpv.addCustomer(snpvCust).pipe(
+          tap(success => success && console.info('נוסף לקוח חדש'))
+        );
+        parallelCalls$.push(addCustomer$);
+
+        // אם אין קריאות לבצע, החזר Observable ריק. אחרת, השתמש ב-forkJoin
+        return parallelCalls$.length > 0 ? forkJoin(parallelCalls$) : of('No parallel calls needed');
+      }),
+      // שלב 3: יתבצע תמיד בסוף השרשרת (הצלחה או כישלון)
+      finalize(() => {
+        console.log('All operations finished. Performing UI updates.');
+        this.scrollToTop();
+        this.loadClientRequests();
+      })
+    ).subscribe({
+      next: () => {
+        console.log('✅ Entire process completed successfully.');
+      },
+      error: err => {
+        console.error('Error during the process:', err.message || err);
+        this.ui.error(err.message || 'אירעה שגיאה. נסה שוב מאוחר יותר.');
+      }
+    });
+
+    /*
     RequestService.update(this.activeRequestId, submitData, finalStatus).subscribe(
       (response) => {
         if (response.success && response.data?.id) {
@@ -980,13 +1043,32 @@ export class ClientComponent implements OnInit {
           this.formSubmitSuccess = true;
           this.requestNumber = response.data.requestNumber || Math.floor(Math.random() * 100000); // שימוש ב-requestNumber מהתגובה
           this.appointmentDetails = (isAppointmentStep && this.selectedAppointment >= 0) ? this.availableSlots[this.selectedAppointment] : null;
+
           if (this.appointmentDetails && this.appointmentDetails.date) {
             console.log('CLIENT :: addAppointment :: ' + JSON.stringify(this.appointmentDetails));
+
             this.calendarService.addAppointment(this.appointmentDetails).subscribe(
               success => this.ui.info('אירוע נוסף ליומן בהצלחה'),
               error => this.ui.info('כישלון בהוספת אירוע ליומן, ' + error)
             )
+
           }
+
+          const snpvCust = {} as snpvCustomer
+          snpvCust.mobiles.push(response.data.personalDetails?.mobile!)
+          snpvCust.names.push(response.data.personalDetails?.fullName!)
+          snpvCust.lead = true;
+
+
+          this.snpv.addCustomer(snpvCust).subscribe(
+            success => {
+              if (success) {
+                console.info('נוסף לקוח חדש')
+              }
+            },
+            error => console.error(error)
+          )
+
           this.scrollToTop(); // Scroll to top to show success message
           this.loadClientRequests(); // Refresh requests list in dashboard view
         } else {
@@ -998,6 +1080,7 @@ export class ClientComponent implements OnInit {
         this.ui.error('שגיאה בשליחת הבקשה. נסה שוב מאוחר יותר.');
       }
     );
+    */
   }
 
   async sendHiMessage() {
@@ -1266,4 +1349,5 @@ export class ClientComponent implements OnInit {
   get isTouchDevice(): boolean {
     return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
   }
+
 }

@@ -16,10 +16,11 @@ import { Stage } from '../shared/entity/stage.entity'
 import { User } from '../shared/entity/user.entity'
 import { seendStages } from './seed'
 import { CalendarController } from '../shared/controller/calendar.controller'
+import { SnpvController } from '../shared/controller/snpv.controller'
 
 export const entities = [User, WhatsAppConversation, ChangeLog, MortgageRequest, Document, Stage, MortgageRequestStage]
 export const controllers = [SignInController, UpdatePasswordController, RequestController,
-  UserController, OperatorController, RequestController, AppointmentController, DocumentController, CalendarController]
+  UserController, OperatorController, RequestController, AppointmentController, DocumentController, CalendarController, SnpvController]
 
 export const api = remultExpress({
   admin: () => true,// remult.isAllowed(Roles.admin),

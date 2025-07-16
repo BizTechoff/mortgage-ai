@@ -1,12 +1,12 @@
-import { BackendMethod, Controller, remult } from "remult";
-import { User } from "../entity/user.entity";
-import { Roles } from "../enum/roles";
-import { getCustomers } from "../../server/service/server.snpv.service";
+import { BackendMethod, Controller } from "remult";
 import { snpvCustomer } from "../type/snpv.type";
 
-@Controller('user') // Define the API path for this controller
+@Controller('snpv') // Define the API path for this controller
 export class SnpvController {
 
+    static getCustomersHandler = async () => [] as snpvCustomer[]
+    static getCustomerHandler = async (mobile: string) => ({} as snpvCustomer)
+    static addCustomerHandler = async (customer: snpvCustomer) => ({} as snpvCustomer)
 
     /**
          * Retrieves a list of users who have the 'operator' role.
@@ -14,7 +14,17 @@ export class SnpvController {
          */
     @BackendMethod({ allowed: true }) // הרשאה למנהל, אדמין ומתפעלים להציג רשימה זו
     static async getCustomers(): Promise<snpvCustomer[]> {
-        return await getCustomers()
+        return await SnpvController.getCustomersHandler()
+    }
+
+    @BackendMethod({ allowed: true }) // הרשאה למנהל, אדמין ומתפעלים להציג רשימה זו
+    static async getCustomer(mobile: string): Promise<snpvCustomer> {
+        return await SnpvController.getCustomerHandler(mobile)
+    }
+
+    @BackendMethod({ allowed: true }) // הרשאה למנהל, אדמין ומתפעלים להציג רשימה זו
+    static async addCustomer(customer: snpvCustomer): Promise<snpvCustomer> {
+        return await SnpvController.addCustomerHandler(customer)
     }
 
 }

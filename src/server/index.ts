@@ -1,8 +1,8 @@
+import './service/server.snpv.service';
 import './service/server.calendar';
-
 import compression from 'compression';
 import session from 'cookie-session';
-import * as dotenv from 'dotenv';
+import { config } from 'dotenv';
 import express from 'express';
 import fs from 'fs';
 import helmet from 'helmet';
@@ -11,21 +11,9 @@ import path from 'path';
 import { fixPhoneInput } from '../app/common/fields/PhoneField';
 import { WhatsAppMessageReceivedInfo, WhatsAppWebhookPayload } from '../shared/type/whatsapp.type';
 import { api } from './api';
-// import { getEvents } from './service/server.calendar';
 import { ServerWhatsAppServiceReceived } from './service/server.whatsapp.service.receiver';
-// import { CalendarController } from '../shared/controller/calendar.controller';
-// import { getEvents } from './service/server.calendar'
-// import { GoogleCalendarService } from './service/googleCalendarService'
-// import '../server/service/server.gmail.calendar'
-// require('../server/service/server.whatsapp.service.sender')
-// require('../server/service/server.calendar')
-// import geteve from '../server/service/server.calendar'
 
-dotenv.config()
-// getEvents()
-// const events = await getEvents()
-// console.log('events',JSON.stringify(events))
-// CalendarController.getEventsHandler = async requestId => getEvents() 
+config()
 
 // הוסף את המטפל הזה בתחילת הקובץ
 process.on('unhandledRejection', (reason, promise) => {
@@ -161,4 +149,5 @@ async function startup() {
   let port = process.env['PORT'] || 3002
   app.listen(port)
 }
+
 startup()

@@ -2,8 +2,7 @@ import {
   Entity,
   Fields,
   IdEntity,
-  Validators,
-  remult
+  Validators
 } from 'remult'
 import { DataControl } from '../../app/common-ui-elements/interfaces'
 import { dateFormatFull } from '../../app/common/dateFunc'
@@ -25,8 +24,8 @@ import { Roles } from '../enum/roles'
   //     : remult.isAllowed([Roles.operator])
   //       ? { customer: true }
   //       : { id: [remult.user?.id!] },
-    // apiPrefilter: () =>
-    // !remult.isAllowed(Roles.admin) ? { id: [remult.user?.id!] } : {},
+  // apiPrefilter: () =>
+  // !remult.isAllowed(Roles.admin) ? { id: [remult.user?.id!] } : {},
   defaultOrderBy: { admin: 'desc', manager: 'desc', operator: 'desc', customer: 'desc', name: 'asc' }
 })
 export class User extends IdEntity {
@@ -48,6 +47,12 @@ export class User extends IdEntity {
     // validate: [Validators.unique],
   })
   email = ''
+
+  @Fields.string({
+    caption: 'מזהה לקוח אנ.פי.וי',
+    allowApiUpdate: false
+  })
+  snpvId = ''
 
   @DataControl<User, boolean>({
     valueChange: (row, col) => {
